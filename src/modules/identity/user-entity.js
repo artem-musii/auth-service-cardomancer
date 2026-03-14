@@ -3,6 +3,4 @@ const createUser = ({ email, displayName = null }) => ({
   displayName
 })
 
-const isDeleted = (user) => user.deletedAt !== null
-
-export { createUser, isDeleted }
+export { createUser }

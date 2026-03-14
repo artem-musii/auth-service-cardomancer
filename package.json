@@ -23,8 +23,6 @@
     "@elysiajs/cors": "^1.4.1",
     "amqplib": "^0.10.9",
     "drizzle-orm": "^0.45.1",
-    "elysia": "^1.4.27",
-    "ioredis": "^5.10.0",
-    "postgres": "^3.4.8"
+    "elysia": "^1.4.27"
   }
 }

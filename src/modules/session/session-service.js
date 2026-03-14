@@ -1,7 +1,7 @@
 import { createSession } from './session-entity.js'
 
-const SessionService = ({ sessionStore, userRepository, eventPublisher, sessionTtlHours }) => {
-  const createSessionCmd = async ({ userId, email, displayName, ipAddress, userAgent }) => {
+const SessionService = ({ sessionStore, eventPublisher, sessionTtlHours }) => {
+  const createSessionCmd = async ({ userId, email, displayName }) => {
     const oldTokens = await sessionStore.deleteAllForUser(userId)
     for (const oldToken of oldTokens) {
       await eventPublisher.publish({

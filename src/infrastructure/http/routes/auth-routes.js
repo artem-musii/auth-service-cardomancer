@@ -1,7 +1,11 @@
-const authRoutes = (app, { userService, sessionService, passwordService, userRepository }) => {
-  app.post('/auth/register', async ({ body, set }) => {
+const authRoutes = (app, { userService, sessionService, passwordService, userRepository, rateLimiters }) => {
+  app.post('/auth/register', async ({ body, set, server, request }) => {
     const { email, password, displayName } = body
     if (!email || !password) { set.status = 400; return { error: 'Email and password required' } }
+
+    const ip = server?.requestIP(request)?.address || 'unknown'
+    const rl = rateLimiters.register.check(ip)
+    if (!rl.allowed) { set.status = 429; return { error: 'Too many attempts, try again later' } }
 
     try {
       const user = await userService.createUser({ email, displayName })
@@ -16,6 +20,9 @@ const authRoutes = (app, { userService, sessionService, passwordService, userRep
   app.post('/auth/login', async ({ body, set }) => {
     const { email, password } = body
     if (!email || !password) { set.status = 400; return { error: 'Email and password required' } }
+
+    const rl = rateLimiters.login.check(email.toLowerCase().trim())
+    if (!rl.allowed) { set.status = 429; return { error: 'Too many attempts, try again later' } }
 
     const user = await userService.findByEmail(email)
     if (!user || user.deletedAt) { set.status = 401; return { error: 'Invalid credentials' } }

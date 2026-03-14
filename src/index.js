@@ -7,6 +7,7 @@ import { SessionService } from './modules/session/session-service.js'
 import { PasswordService } from './modules/credentials/password-service.js'
 import { OtpService } from './modules/credentials/otp-service.js'
 import { OAuthService } from './modules/oauth/oauth-service.js'
+import { RateLimiter } from './modules/rate-limit/rate-limiter.js'
 import { authRoutes } from './infrastructure/http/routes/auth-routes.js'
 import { validateRoutes } from './infrastructure/http/routes/validate-routes.js'
 import { otpRoutes } from './infrastructure/http/routes/otp-routes.js'
@@ -18,18 +19,16 @@ const createApp = async ({ overrides = {}, config: configOverride } = {}) => {
   const container = createContainer({ overrides })
 
   if (!overrides.userRepository) {
-    const { default: postgres } = await import('postgres')
-    const { drizzle } = await import('drizzle-orm/postgres-js')
-    const { default: Redis } = await import('ioredis')
+    const { drizzle } = await import('drizzle-orm/bun-sql')
+    const { RedisClient } = await import('bun')
     const amqplib = await import('amqplib')
     const { DrizzleUserRepository } = await import('./infrastructure/db/drizzle-user-repository.js')
     const { RedisSessionStore } = await import('./infrastructure/redis/redis-session-store.js')
     const { RedisOtpStore } = await import('./infrastructure/redis/redis-otp-store.js')
     const { RabbitMQPublisher } = await import('./infrastructure/rabbitmq/event-publisher.js')
 
-    const client = postgres(config.database.url)
-    const db = drizzle(client)
-    const redis = new Redis(config.redis.url)
+    const db = drizzle(config.database.url)
+    const redis = new RedisClient(config.redis.url)
     const rabbitConn = await amqplib.connect(config.rabbitmq.url)
     const rabbitChannel = await rabbitConn.createChannel()
 
@@ -48,7 +47,6 @@ const createApp = async ({ overrides = {}, config: configOverride } = {}) => {
   container.register('sessionService', (c) =>
     overrides.sessionService || SessionService({
       sessionStore: c.resolve('sessionStore'),
-      userRepository: c.resolve('userRepository'),
       eventPublisher: c.resolve('eventPublisher'),
       sessionTtlHours: config.session.ttlHours
     })
@@ -70,6 +68,12 @@ const createApp = async ({ overrides = {}, config: configOverride } = {}) => {
   const app = new Elysia()
     .use(cors({ origin: config.allowedOrigins }))
 
+  const rateLimiters = {
+    login: RateLimiter({ store: new Map(), maxAttempts: 5, windowMs: 15 * 60 * 1000 }),
+    register: RateLimiter({ store: new Map(), maxAttempts: 5, windowMs: 60 * 60 * 1000 }),
+    otp: RateLimiter({ store: new Map(), maxAttempts: 5, windowMs: 15 * 60 * 1000 }),
+  }
+
   const deps = {
     userService: container.resolve('userService'),
     sessionService: container.resolve('sessionService'),
@@ -77,7 +81,8 @@ const createApp = async ({ overrides = {}, config: configOverride } = {}) => {
     otpService: container.resolve('otpService'),
     oauthService: container.resolve('oauthService'),
     userRepository: container.resolve('userRepository'),
-    serviceKey: config.serviceKey
+    serviceKey: config.serviceKey,
+    rateLimiters
   }
 
   healthRoutes(app)

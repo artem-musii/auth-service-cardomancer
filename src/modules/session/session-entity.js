@@ -12,4 +12,4 @@ const createSession = ({ userId, email, displayName, ttlHours }) => {
   }
 }
 
-export { generateToken, createSession }
+export { createSession }
