@@ -12,8 +12,10 @@ const loadConfig = (env) => {
     session: { ttlHours: parseInt(env.SESSION_TTL_HOURS || '168', 10) },
     google: {
       clientId: env.GOOGLE_CLIENT_ID || '',
-      clientSecret: env.GOOGLE_CLIENT_SECRET || ''
+      clientSecret: env.GOOGLE_CLIENT_SECRET || '',
+      redirectUri: env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/auth/google/callback'
     },
+    clientUrl: env.CLIENT_URL || 'http://localhost:8000',
     apple: {
       clientId: env.APPLE_CLIENT_ID || '',
       teamId: env.APPLE_TEAM_ID || '',
@@ -22,7 +24,8 @@ const loadConfig = (env) => {
     },
     serviceKey: env.SERVICE_KEY,
     allowedOrigins: env.ALLOWED_ORIGINS.split(','),
-    port: parseInt(env.PORT || '3001', 10)
+    port: parseInt(env.PORT || '3001', 10),
+    logLevel: env.LOG_LEVEL || 'info'
   }
 }
 

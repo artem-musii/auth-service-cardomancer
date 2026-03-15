@@ -1,8 +1,9 @@
-const validateRoutes = (app, { sessionService, serviceKey }) => {
+const validateRoutes = (app, { sessionService, serviceKey, log }) => {
   app.post('/auth/validate', async ({ body, headers, set }) => {
-    if (headers['x-service-key'] !== serviceKey) { set.status = 403; return { error: 'Invalid service key' } }
+    log.debug('validation attempt')
+    if (headers['x-service-key'] !== serviceKey) { log.warn('validation failed: invalid service key'); set.status = 403; return { error: 'Invalid service key' } }
     const { token } = body
-    if (!token) return { valid: false }
+    if (!token) { log.warn('validation failed: no token'); return { valid: false } }
     return sessionService.validate(token)
   })
 

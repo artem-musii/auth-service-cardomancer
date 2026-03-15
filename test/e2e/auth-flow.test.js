@@ -15,7 +15,8 @@ describe('Auth Flow E2E', () => {
         userRepository: InMemoryUserRepository(),
         sessionStore: InMemorySessionStore(),
         otpStore,
-        eventPublisher: FakeEventPublisher()
+        eventPublisher: FakeEventPublisher(),
+        emailPublisher: FakeEventPublisher()
       },
       config: {
         database: { url: '' },

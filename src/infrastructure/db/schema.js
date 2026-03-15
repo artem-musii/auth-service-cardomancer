@@ -5,7 +5,7 @@ const providerEnum = pgEnum('provider', ['password', 'google', 'apple'])
 const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
   email: varchar('email', { length: 255 }).notNull().unique(),
-  displayName: varchar('display_name', { length: 255 }),
+  displayName: varchar('display_name', { length: 255 }).unique(),
   emailVerifiedAt: timestamp('email_verified_at'),
   deletedAt: timestamp('deleted_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),

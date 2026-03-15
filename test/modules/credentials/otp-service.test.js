@@ -7,7 +7,7 @@ describe('OtpService', () => {
   const setup = () => {
     const store = InMemoryOtpStore()
     const events = FakeEventPublisher()
-    const service = OtpService({ otpStore: store, eventPublisher: events })
+    const service = OtpService({ otpStore: store, emailPublisher: events })
     return { service, store, events }
   }
 
