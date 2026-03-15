@@ -22,7 +22,7 @@ const OAuthService = ({ userService, sessionService, userRepository, providers }
 
     let user = await userService.findByEmail(info.email)
     if (!user) {
-      user = await userService.createUser({ email: info.email, displayName: info.displayName })
+      user = await userService.createUser({ email: info.email })
     }
 
     if (!user.emailVerifiedAt) {

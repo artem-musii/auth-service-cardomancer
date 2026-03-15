@@ -3,7 +3,7 @@ const maskEmail = (email) => {
   return `${local.slice(0, 3)}***@${domain}`
 }
 
-const otpRoutes = (app, { otpService, userService, sessionService, rateLimiters, userRepository, log }) => {
+const otpRoutes = (app, { otpService, userService, sessionService, rateLimiters, userRepository, passwordService, log }) => {
   app.post('/auth/otp/request', async ({ body, set }) => {
     const { email } = body
     if (!email) { set.status = 400; return { error: 'Email required' } }
@@ -42,6 +42,16 @@ const otpRoutes = (app, { otpService, userService, sessionService, rateLimiters,
 
     if (!user.emailVerifiedAt) {
       await userService.verifyEmail(user.email)
+    }
+
+    const pendingHash = await otpService.getPendingPassword(email)
+    if (pendingHash) {
+      const methods = await userRepository.findAuthMethodsByUserId(user.id)
+      const pwMethod = methods.find((m) => m.provider === 'password')
+      if (!pwMethod) {
+        await userRepository.createAuthMethod({ userId: user.id, provider: 'password', providerId: email.toLowerCase().trim(), passwordHash: pendingHash })
+        log.info('password auth method created from pending login', { email: maskEmail(email) })
+      }
     }
 
     log.info('otp verified successfully', { email: maskEmail(email) })

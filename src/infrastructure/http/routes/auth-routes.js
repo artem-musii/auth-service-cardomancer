@@ -86,10 +86,12 @@ const authRoutes = (app, { userService, sessionService, passwordService, userRep
     const methods = await userRepository.findAuthMethodsByUserId(user.id)
     const pwMethod = methods.find((m) => m.provider === 'password')
     if (!pwMethod) {
-      const providers = methods.map((m) => m.provider)
-      log.info('login without password method', { email: maskEmail(email), providers })
-      set.status = 400
-      return { error: 'This account uses a different login method', useOtp: true, providers }
+      log.info('login without password method, sending OTP', { email: maskEmail(email) })
+      const normalizedEmail = email.toLowerCase().trim()
+      const hash = await passwordService.hash(password)
+      await otpService.storePendingPassword(normalizedEmail, hash)
+      try { await otpService.requestOtp(normalizedEmail) } catch { void 0 }
+      return { useOtp: true, otpSent: true }
     }
 
     const valid = await passwordService.verify(password, pwMethod.passwordHash)
@@ -118,6 +120,24 @@ const authRoutes = (app, { userService, sessionService, passwordService, userRep
     await sessionService.revoke(token)
     log.info('logout successful')
     return { ok: true }
+  })
+
+  app.post('/auth/password/reset', async ({ body, set }) => {
+    const { email, newPassword } = body
+    if (!email || !newPassword) { set.status = 400; return { error: 'Email and new password required' } }
+
+    const normalizedEmail = email.toLowerCase().trim()
+    const rl = rateLimiters.otp.check(normalizedEmail)
+    if (!rl.allowed) { set.status = 429; return { error: 'Too many attempts, try again later' } }
+
+    const user = await userService.findByEmail(normalizedEmail)
+    if (!user || !user.emailVerifiedAt) { return { otpSent: true } }
+
+    const hash = await passwordService.hash(newPassword)
+    await otpService.storePendingPassword(normalizedEmail, hash)
+    try { await otpService.requestOtp(normalizedEmail) } catch { void 0 }
+    log.info('password reset requested', { email: maskEmail(normalizedEmail) })
+    return { otpSent: true }
   })
 
   app.post('/auth/profile/display-name', async ({ body, headers, set }) => {

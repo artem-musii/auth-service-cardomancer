@@ -15,6 +15,13 @@
       "when": 1773585049723,
       "tag": "0001_chilly_thena",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773588783215,
+      "tag": "0002_bitter_harpoon",
+      "breakpoints": true
     }
   ]
 }

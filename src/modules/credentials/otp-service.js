@@ -44,7 +44,15 @@ const OtpService = ({ otpStore, emailPublisher, log }) => {
     return { valid: false }
   }
 
-  return { requestOtp, verifyOtp }
+  const storePendingPassword = async (email, hash) => {
+    await otpStore.setPendingPassword(email.toLowerCase().trim(), hash, OTP_TTL)
+  }
+
+  const getPendingPassword = async (email) => {
+    return otpStore.getPendingPassword(email.toLowerCase().trim())
+  }
+
+  return { requestOtp, verifyOtp, storePendingPassword, getPendingPassword }
 }
 
 export { OtpService }

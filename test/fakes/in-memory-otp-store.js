@@ -22,7 +22,19 @@ const InMemoryOtpStore = () => {
 
   const setCooldown = async (email, _ttlSeconds) => { cooldowns.add(email) }
 
-  return { set, get, decrementAttempts, delete: del, getCooldown, setCooldown }
+  const pendingPasswords = new Map()
+
+  const setPendingPassword = async (email, hash) => {
+    pendingPasswords.set(email, hash)
+  }
+
+  const getPendingPassword = async (email) => {
+    const hash = pendingPasswords.get(email) || null
+    pendingPasswords.delete(email)
+    return hash
+  }
+
+  return { set, get, decrementAttempts, delete: del, getCooldown, setCooldown, setPendingPassword, getPendingPassword }
 }
 
 export { InMemoryOtpStore }

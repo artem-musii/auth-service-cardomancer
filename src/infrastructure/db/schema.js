@@ -1,4 +1,4 @@
-import { pgTable, pgEnum, uuid, varchar, text, timestamp, index, uniqueIndex } from 'drizzle-orm/pg-core'
+import { pgTable, pgEnum, uuid, varchar, timestamp, index, uniqueIndex } from 'drizzle-orm/pg-core'
 
 const providerEnum = pgEnum('provider', ['password', 'google', 'apple'])
 
@@ -24,17 +24,4 @@ const authMethods = pgTable('auth_methods', {
   index('auth_methods_user_id_idx').on(table.userId)
 ])
 
-const sessions = pgTable('sessions', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id').notNull().references(() => users.id),
-  token: varchar('token', { length: 64 }).notNull().unique(),
-  ipAddress: varchar('ip_address', { length: 45 }),
-  userAgent: text('user_agent'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  expiresAt: timestamp('expires_at').notNull(),
-  revokedAt: timestamp('revoked_at')
-}, (table) => [
-  index('sessions_user_id_idx').on(table.userId)
-])
-
-export { providerEnum, users, authMethods, sessions }
+export { providerEnum, users, authMethods }
