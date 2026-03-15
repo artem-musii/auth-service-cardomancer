@@ -70,4 +70,18 @@ describe('SessionService', () => {
     const result = await service.revokeAllForUser(user.id)
     expect(result.length).toBeGreaterThanOrEqual(1)
   })
+
+  it('createSession returns displayName', async () => {
+    const { service } = await setup()
+    const result = await service.createSession({ userId: 'u1', email: 'a@b.com', displayName: 'test_user' })
+    expect(result.displayName).toBe('test_user')
+  })
+
+  it('updateSessionDisplayName updates session in Redis without creating new session', async () => {
+    const { service, sessionStore } = await setup()
+    const session = await service.createSession({ userId: 'u1', email: 'a@b.com', displayName: null })
+    await service.updateSessionDisplayName(session.token, 'new_name')
+    const data = await sessionStore.get(session.token)
+    expect(data.displayName).toBe('new_name')
+  })
 })

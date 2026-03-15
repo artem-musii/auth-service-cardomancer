@@ -13,7 +13,7 @@ const SessionService = ({ sessionStore, eventPublisher, sessionTtlHours }) => {
     }
     const session = createSession({ userId, email, displayName, ttlHours: sessionTtlHours })
     await sessionStore.set(session.token, session.data, session.ttlSeconds)
-    return { token: session.token, userId, expiresAt: session.expiresAt }
+    return { token: session.token, userId, expiresAt: session.expiresAt, displayName }
   }
 
   const validate = async (token) => {
@@ -48,7 +48,16 @@ const SessionService = ({ sessionStore, eventPublisher, sessionTtlHours }) => {
     return tokens
   }
 
-  return { createSession: createSessionCmd, validate, revoke, revokeAllForUser }
+  const updateSessionDisplayName = async (token, displayName) => {
+    const data = await sessionStore.get(token)
+    if (!data) return null
+    data.displayName = displayName
+    const ttlSeconds = Math.max(0, Math.floor((new Date(data.expiresAt).getTime() - Date.now()) / 1000))
+    await sessionStore.set(token, data, ttlSeconds)
+    return data
+  }
+
+  return { createSession: createSessionCmd, validate, revoke, revokeAllForUser, updateSessionDisplayName }
 }
 
 export { SessionService }
