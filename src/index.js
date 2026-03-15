@@ -83,7 +83,7 @@ const createApp = async ({ overrides = {}, config: configOverride } = {}) => {
   const app = new Elysia()
     .use(cors({ origin: config.allowedOrigins }))
 
-  const rateLimiters = {
+  const rateLimiters = overrides.rateLimiters || {
     login: RateLimiter({ store: new Map(), maxAttempts: 5, windowMs: 15 * 60 * 1000 }),
     register: RateLimiter({ store: new Map(), maxAttempts: 5, windowMs: 60 * 60 * 1000 }),
     otp: RateLimiter({ store: new Map(), maxAttempts: 5, windowMs: 15 * 60 * 1000 }),

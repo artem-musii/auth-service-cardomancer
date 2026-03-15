@@ -45,7 +45,9 @@ const otpRoutes = (app, { otpService, userService, sessionService, rateLimiters,
     }
 
     log.info('otp verified successfully', { email: maskEmail(email) })
-    return sessionService.createSession({ userId: user.id, email: user.email, displayName: user.displayName })
+    const session = await sessionService.createSession({ userId: user.id, email: user.email, displayName: user.displayName })
+    if (!user.displayName) session.needsDisplayName = true
+    return session
   })
 
   return app

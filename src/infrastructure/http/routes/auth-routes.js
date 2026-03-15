@@ -66,7 +66,9 @@ const authRoutes = (app, { userService, sessionService, passwordService, userRep
     if (!result.valid) { set.status = 401; return { error: 'Invalid or expired code' } }
 
     await userService.verifyEmail(normalizedEmail)
-    return sessionService.createSession({ userId: user.id, email: user.email, displayName: user.displayName })
+    const session = await sessionService.createSession({ userId: user.id, email: user.email, displayName: user.displayName })
+    if (!user.displayName) session.needsDisplayName = true
+    return session
   })
 
   app.post('/auth/login', async ({ body, set }) => {
@@ -96,7 +98,9 @@ const authRoutes = (app, { userService, sessionService, passwordService, userRep
     if (!user.emailVerifiedAt) { log.warn('login with unverified email', { email: maskEmail(email) }); set.status = 403; return { error: 'Email not verified', needsVerification: true } }
 
     log.info('login successful', { email: maskEmail(email) })
-    return sessionService.createSession({ userId: user.id, email: user.email, displayName: user.displayName })
+    const session = await sessionService.createSession({ userId: user.id, email: user.email, displayName: user.displayName })
+    if (!user.displayName) session.needsDisplayName = true
+    return session
   })
 
   app.get('/auth/me', async ({ headers, set }) => {
@@ -104,6 +108,7 @@ const authRoutes = (app, { userService, sessionService, passwordService, userRep
     if (!token) { set.status = 401; return { error: 'No token' } }
     const result = await sessionService.validate(token)
     if (!result.valid) { set.status = 401; return { error: 'Invalid session' } }
+    if (!result.displayName) result.needsDisplayName = true
     return result
   })
 
@@ -113,6 +118,24 @@ const authRoutes = (app, { userService, sessionService, passwordService, userRep
     await sessionService.revoke(token)
     log.info('logout successful')
     return { ok: true }
+  })
+
+  app.post('/auth/profile/display-name', async ({ body, headers, set }) => {
+    const token = headers.authorization?.replace('Bearer ', '')
+    if (!token) { set.status = 401; return { error: 'No token' } }
+    const session = await sessionService.validate(token)
+    if (!session.valid) { set.status = 401; return { error: 'Invalid session' } }
+    const { displayName } = body
+    if (!displayName) { set.status = 400; return { error: 'Display name required' } }
+    try {
+      await userService.updateDisplayName(session.userId, displayName)
+      await sessionService.updateSessionDisplayName(token, displayName)
+      return { displayName }
+    } catch (e) {
+      if (e.message === 'Invalid display name') { set.status = 400; return { error: e.message } }
+      if (e.message === 'Display name already taken') { set.status = 409; return { error: e.message } }
+      set.status = 500; return { error: 'Internal error' }
+    }
   })
 
   return app
