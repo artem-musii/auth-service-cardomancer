@@ -7,6 +7,7 @@ const InMemoryUserRepository = () => {
       id: crypto.randomUUID(),
       email,
       displayName,
+      emailVerifiedAt: null,
       deletedAt: null,
       createdAt: new Date(),
       updatedAt: new Date()
@@ -50,7 +51,14 @@ const InMemoryUserRepository = () => {
     return method
   }
 
-  return { create, findById, findByEmail, update, findAuthMethod, findAuthMethodsByUserId, createAuthMethod }
+  const updateAuthMethod = async (id, data) => {
+    const method = authMethods.find((m) => m.id === id)
+    if (!method) throw new Error('Auth method not found')
+    Object.assign(method, data)
+    return method
+  }
+
+  return { create, findById, findByEmail, update, findAuthMethod, findAuthMethodsByUserId, createAuthMethod, updateAuthMethod }
 }
 
 export { InMemoryUserRepository }

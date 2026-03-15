@@ -37,7 +37,12 @@ const DrizzleUserRepository = (db) => {
     return rows[0]
   }
 
-  return { findById, findByEmail, create, update, findAuthMethod, findAuthMethodsByUserId, createAuthMethod }
+  const updateAuthMethod = async (id, data) => {
+    const rows = await db.update(authMethods).set(data).where(eq(authMethods.id, id)).returning()
+    return rows[0]
+  }
+
+  return { findById, findByEmail, create, update, findAuthMethod, findAuthMethodsByUserId, createAuthMethod, updateAuthMethod }
 }
 
 export { DrizzleUserRepository }

@@ -28,7 +28,13 @@ const UserService = ({ userRepository, eventPublisher }) => {
     })
   }
 
-  return { createUser: createUserCmd, findById, findByEmail, deleteUser }
+  const verifyEmail = async (email) => {
+    const user = await userRepository.findByEmail(email.toLowerCase().trim())
+    if (!user) throw new Error('User not found')
+    return userRepository.update(user.id, { emailVerifiedAt: new Date() })
+  }
+
+  return { createUser: createUserCmd, findById, findByEmail, deleteUser, verifyEmail }
 }
 
 export { UserService }

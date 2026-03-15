@@ -39,6 +39,19 @@ describe('UserService', () => {
     expect(found.email).toBe('a@b.com')
   })
 
+  it('verifies email and sets emailVerifiedAt', async () => {
+    const { service } = setup()
+    const user = await service.createUser({ email: 'a@b.com' })
+    expect(user.emailVerifiedAt).toBeNull()
+    const verified = await service.verifyEmail('a@b.com')
+    expect(verified.emailVerifiedAt).not.toBeNull()
+  })
+
+  it('verifyEmail throws if user not found', async () => {
+    const { service } = setup()
+    await expect(service.verifyEmail('nobody@x.com')).rejects.toThrow()
+  })
+
   it('soft-deletes user and publishes user.deleted', async () => {
     const { service, events } = setup()
     const user = await service.createUser({ email: 'a@b.com' })
