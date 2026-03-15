@@ -13,7 +13,7 @@ describe('OAuthService', () => {
     const sessionStore = InMemorySessionStore()
     const events = FakeEventPublisher()
     const userService = UserService({ userRepository: userRepo, eventPublisher: events })
-    const sessionService = SessionService({ sessionStore, userRepository: userRepo, eventPublisher: events, sessionTtlHours: 168 })
+    const sessionService = SessionService({ sessionStore, eventPublisher: events, sessionTtlHours: 168 })
     const googleProvider = FakeOAuthProvider({ userInfo: { providerId: 'g123', email: 'user@gmail.com', displayName: 'G User' } })
     const service = OAuthService({ userService, sessionService, userRepository: userRepo, providers: { google: googleProvider } })
     return { service, userRepo, events, userService }
@@ -46,5 +46,12 @@ describe('OAuthService', () => {
   it('throws for unknown provider', async () => {
     const { service } = setup()
     await expect(service.handleCallback('github', 'code')).rejects.toThrow()
+  })
+
+  it('sets emailVerifiedAt on new OAuth user', async () => {
+    const { service, userRepo } = setup()
+    await service.handleCallback('google', 'code123')
+    const user = await userRepo.findByEmail('user@gmail.com')
+    expect(user.emailVerifiedAt).not.toBeNull()
   })
 })

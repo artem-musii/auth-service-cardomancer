@@ -1,4 +1,4 @@
-const otpRoutes = (app, { otpService, userService, sessionService, rateLimiters }) => {
+const otpRoutes = (app, { otpService, userService, sessionService, rateLimiters, userRepository }) => {
   app.post('/auth/otp/request', async ({ body, set }) => {
     const { email } = body
     if (!email) { set.status = 400; return { error: 'Email required' } }
@@ -27,6 +27,10 @@ const otpRoutes = (app, { otpService, userService, sessionService, rateLimiters 
     let user = await userService.findByEmail(email)
     if (!user) {
       user = await userService.createUser({ email })
+    }
+
+    if (!user.emailVerifiedAt) {
+      await userService.verifyEmail(user.email)
     }
 
     return sessionService.createSession({ userId: user.id, email: user.email, displayName: user.displayName })

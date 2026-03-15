@@ -22,6 +22,10 @@ const OAuthService = ({ userService, sessionService, userRepository, providers }
       user = await userService.createUser({ email: info.email, displayName: info.displayName })
     }
 
+    if (!user.emailVerifiedAt) {
+      user = await userService.verifyEmail(user.email)
+    }
+
     await userRepository.createAuthMethod({
       userId: user.id,
       provider: providerName,
