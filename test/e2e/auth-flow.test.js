@@ -6,14 +6,15 @@ import { InMemoryOtpStore } from '../fakes/in-memory-otp-store.js'
 import { FakeEventPublisher } from '../fakes/fake-event-publisher.js'
 
 describe('Auth Flow E2E', () => {
-  let app, baseUrl
+  let app, baseUrl, otpStore
 
   beforeAll(async () => {
+    otpStore = InMemoryOtpStore()
     const result = await createApp({
       overrides: {
         userRepository: InMemoryUserRepository(),
         sessionStore: InMemorySessionStore(),
-        otpStore: InMemoryOtpStore(),
+        otpStore,
         eventPublisher: FakeEventPublisher()
       },
       config: {
@@ -34,19 +35,42 @@ describe('Auth Flow E2E', () => {
 
   afterAll(() => app?.stop?.())
 
-  it('registers a new user', async () => {
+  const register = async (email, password, displayName) => {
     const res = await fetch(`${baseUrl}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', password: 'Password123!', displayName: 'Test' })
+      body: JSON.stringify({ email, password, displayName })
     })
+    return res
+  }
+
+  const verifyEmail = async (email) => {
+    const otp = await otpStore.get(email)
+    const res = await fetch(`${baseUrl}/auth/register/verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code: otp.code })
+    })
+    return res
+  }
+
+  it('register returns needsVerification', async () => {
+    const res = await register('test@example.com', 'Password123!', 'Test')
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.needsVerification).toBe(true)
+    expect(body.token).toBeUndefined()
+  })
+
+  it('verify issues session token', async () => {
+    const res = await verifyEmail('test@example.com')
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.token).toBeDefined()
     expect(body.userId).toBeDefined()
   })
 
-  it('logs in with correct password', async () => {
+  it('login works after verification', async () => {
     const res = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -55,6 +79,32 @@ describe('Auth Flow E2E', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.token).toBeDefined()
+  })
+
+  it('login blocked before verification', async () => {
+    await register('unverified@example.com', 'Password123!', 'UV')
+    const res = await fetch(`${baseUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'unverified@example.com', password: 'Password123!' })
+    })
+    expect(res.status).toBe(403)
+    const body = await res.json()
+    expect(body.needsVerification).toBe(true)
+  })
+
+  it('re-register for unverified user resends OTP', async () => {
+    const res = await register('unverified@example.com', 'NewPassword123!', 'UV')
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.needsVerification).toBe(true)
+  })
+
+  it('re-register for verified user returns needsVerification silently', async () => {
+    const res = await register('test@example.com', 'Password123!', 'Test')
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.needsVerification).toBe(true)
   })
 
   it('rejects wrong password', async () => {
