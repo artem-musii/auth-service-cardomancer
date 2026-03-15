@@ -1,4 +1,4 @@
-const oauthRoutes = (app, { oauthService }) => {
+const oauthRoutes = (app, { oauthService, userService, clientUrl }) => {
   app.get('/auth/google', ({ set }) => {
     const state = crypto.randomUUID()
     set.redirect = oauthService.getAuthUrl('google', state)
@@ -8,9 +8,18 @@ const oauthRoutes = (app, { oauthService }) => {
     const { code } = query
     if (!code) { set.status = 400; return { error: 'Missing code' } }
     try {
-      return await oauthService.handleCallback('google', code)
+      const session = await oauthService.handleCallback('google', code)
+      const user = await userService.findById(session.userId)
+      const params = new URLSearchParams({
+        oauth_token: session.token,
+        oauth_userId: session.userId,
+        oauth_expiresAt: session.expiresAt.toISOString()
+      })
+      if (session.displayName) params.set('oauth_displayName', session.displayName)
+      if (!user?.displayName) params.set('oauth_needsDisplayName', 'true')
+      set.redirect = `${clientUrl}?${params.toString()}`
     } catch (e) {
-      set.status = 401; return { error: e.message }
+      set.redirect = `${clientUrl}?oauth_error=${encodeURIComponent(e.message)}`
     }
   })
 
@@ -23,9 +32,18 @@ const oauthRoutes = (app, { oauthService }) => {
     const code = query?.code || reqBody?.code
     if (!code) { set.status = 400; return { error: 'Missing code' } }
     try {
-      return await oauthService.handleCallback('apple', code)
+      const session = await oauthService.handleCallback('apple', code)
+      const user = await userService.findById(session.userId)
+      const params = new URLSearchParams({
+        oauth_token: session.token,
+        oauth_userId: session.userId,
+        oauth_expiresAt: session.expiresAt.toISOString()
+      })
+      if (session.displayName) params.set('oauth_displayName', session.displayName)
+      if (!user?.displayName) params.set('oauth_needsDisplayName', 'true')
+      set.redirect = `${clientUrl}?${params.toString()}`
     } catch (e) {
-      set.status = 401; return { error: e.message }
+      set.redirect = `${clientUrl}?oauth_error=${encodeURIComponent(e.message)}`
     }
   })
 
