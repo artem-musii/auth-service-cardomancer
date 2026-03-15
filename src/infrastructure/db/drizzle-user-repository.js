@@ -12,6 +12,11 @@ const DrizzleUserRepository = (db) => {
     return rows[0] || null
   }
 
+  const findByDisplayName = async (displayName) => {
+    const rows = await db.select().from(users).where(eq(users.displayName, displayName)).limit(1)
+    return rows[0] || null
+  }
+
   const create = async ({ email, displayName = null }) => {
     const rows = await db.insert(users).values({ email, displayName }).returning()
     return rows[0]
@@ -42,7 +47,7 @@ const DrizzleUserRepository = (db) => {
     return rows[0]
   }
 
-  return { findById, findByEmail, create, update, findAuthMethod, findAuthMethodsByUserId, createAuthMethod, updateAuthMethod }
+  return { findById, findByEmail, findByDisplayName, create, update, findAuthMethod, findAuthMethodsByUserId, createAuthMethod, updateAuthMethod }
 }
 
 export { DrizzleUserRepository }

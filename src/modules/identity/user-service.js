@@ -1,4 +1,5 @@
 import { createUser } from './user-entity.js'
+import { validateDisplayName } from './display-name.js'
 
 const UserService = ({ userRepository, eventPublisher }) => {
   const createUserCmd = async ({ email, displayName }) => {
@@ -34,7 +35,14 @@ const UserService = ({ userRepository, eventPublisher }) => {
     return userRepository.update(user.id, { emailVerifiedAt: new Date() })
   }
 
-  return { createUser: createUserCmd, findById, findByEmail, deleteUser, verifyEmail }
+  const updateDisplayName = async (userId, displayName) => {
+    if (!validateDisplayName(displayName)) throw new Error('Invalid display name')
+    const existing = await userRepository.findByDisplayName(displayName)
+    if (existing && existing.id !== userId) throw new Error('Display name already taken')
+    return userRepository.update(userId, { displayName })
+  }
+
+  return { createUser: createUserCmd, findById, findByEmail, deleteUser, verifyEmail, updateDisplayName }
 }
 
 export { UserService }

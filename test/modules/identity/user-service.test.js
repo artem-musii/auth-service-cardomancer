@@ -60,4 +60,25 @@ describe('UserService', () => {
     expect(found.deletedAt).not.toBeNull()
     expect(events.published.find((e) => e.type === 'user.deleted')).toBeTruthy()
   })
+
+  it('updateDisplayName validates and persists', async () => {
+    const { service } = setup()
+    const user = await service.createUser({ email: 'a@b.com' })
+    const updated = await service.updateDisplayName(user.id, 'valid_name')
+    expect(updated.displayName).toBe('valid_name')
+  })
+
+  it('updateDisplayName rejects invalid format', async () => {
+    const { service } = setup()
+    const user = await service.createUser({ email: 'a@b.com' })
+    await expect(service.updateDisplayName(user.id, 'AB')).rejects.toThrow('Invalid display name')
+  })
+
+  it('updateDisplayName rejects duplicate', async () => {
+    const { service, repo } = setup()
+    const u1 = await service.createUser({ email: 'a@b.com' })
+    await service.updateDisplayName(u1.id, 'taken_name')
+    const u2 = await service.createUser({ email: 'c@d.com' })
+    await expect(service.updateDisplayName(u2.id, 'taken_name')).rejects.toThrow('Display name already taken')
+  })
 })

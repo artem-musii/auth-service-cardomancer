@@ -25,6 +25,13 @@ const InMemoryUserRepository = () => {
     return null
   }
 
+  const findByDisplayName = async (displayName) => {
+    for (const u of users.values()) {
+      if (u.displayName === displayName) return u
+    }
+    return null
+  }
+
   const update = async (id, data) => {
     const user = users.get(id)
     if (!user) throw new Error('User not found')
@@ -58,7 +65,7 @@ const InMemoryUserRepository = () => {
     return method
   }
 
-  return { create, findById, findByEmail, update, findAuthMethod, findAuthMethodsByUserId, createAuthMethod, updateAuthMethod }
+  return { create, findById, findByEmail, findByDisplayName, update, findAuthMethod, findAuthMethodsByUserId, createAuthMethod, updateAuthMethod }
 }
 
 export { InMemoryUserRepository }
