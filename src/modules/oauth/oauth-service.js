@@ -13,7 +13,10 @@ const OAuthService = ({ userService, sessionService, userRepository, providers }
     let authMethod = await userRepository.findAuthMethod(providerName, info.providerId)
 
     if (authMethod) {
-      const user = await userService.findById(authMethod.userId)
+      let user = await userService.findById(authMethod.userId)
+      if (!user.emailVerifiedAt) {
+        user = await userService.verifyEmail(user.email)
+      }
       return sessionService.createSession({ userId: user.id, email: user.email, displayName: user.displayName })
     }
 

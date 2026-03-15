@@ -20,7 +20,11 @@ const authRoutes = (app, { userService, sessionService, passwordService, userRep
       const hash = await passwordService.hash(password)
       const methods = await userRepository.findAuthMethodsByUserId(existing.id)
       const pwMethod = methods.find((m) => m.provider === 'password')
-      if (pwMethod) await userRepository.updateAuthMethod(pwMethod.id, { passwordHash: hash })
+      if (pwMethod) {
+        await userRepository.updateAuthMethod(pwMethod.id, { passwordHash: hash })
+      } else {
+        await userRepository.createAuthMethod({ userId: existing.id, provider: 'password', providerId: normalizedEmail, passwordHash: hash })
+      }
       if (displayName) await userRepository.update(existing.id, { displayName })
       try { await otpService.requestOtp(normalizedEmail) } catch {}
       return { needsVerification: true }
@@ -31,7 +35,7 @@ const authRoutes = (app, { userService, sessionService, passwordService, userRep
       const user = await userService.createUser({ email, displayName })
       const hash = await passwordService.hash(password)
       await userRepository.createAuthMethod({ userId: user.id, provider: 'password', providerId: normalizedEmail, passwordHash: hash })
-      await otpService.requestOtp(normalizedEmail)
+      try { await otpService.requestOtp(normalizedEmail) } catch {}
       return { needsVerification: true }
     } catch (e) {
       set.status = 409; return { error: e.message }
@@ -46,12 +50,12 @@ const authRoutes = (app, { userService, sessionService, passwordService, userRep
     const rl = rateLimiters.otp.check(normalizedEmail)
     if (!rl.allowed) { set.status = 429; return { error: 'Too many attempts, try again later' } }
 
-    const result = await otpService.verifyOtp(normalizedEmail, code)
-    if (!result.valid) { set.status = 401; return { error: 'Invalid or expired code' } }
-
     const user = await userService.findByEmail(normalizedEmail)
     if (!user) { set.status = 404; return { error: 'User not found' } }
     if (user.emailVerifiedAt) { set.status = 400; return { error: 'Already verified' } }
+
+    const result = await otpService.verifyOtp(normalizedEmail, code)
+    if (!result.valid) { set.status = 401; return { error: 'Invalid or expired code' } }
 
     await userService.verifyEmail(normalizedEmail)
     return sessionService.createSession({ userId: user.id, email: user.email, displayName: user.displayName })
