@@ -1,4 +1,12 @@
-node_modules
-.git
-.claude
+node_modules/
 .env
+.git/
+test/
+docs/
+*.md
+.github/
+.husky/
+scripts/
+.prettierrc
+eslint.config.js
+.lintstagedrc
