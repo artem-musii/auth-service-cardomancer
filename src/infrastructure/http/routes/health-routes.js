@@ -10,19 +10,27 @@ const healthRoutes = (app, { db, redis }) => {
   app.get('/health', async ({ set }) => {
     const checks = { database: 'ok', redis: 'ok' }
 
-    try {
-      await withTimeout(db.execute(sql`SELECT 1`), HEALTH_TIMEOUT)
-    } catch {
-      checks.database = 'failing'
+    if (db) {
+      try {
+        await withTimeout(db.execute(sql`SELECT 1`), HEALTH_TIMEOUT)
+      } catch {
+        checks.database = 'failing'
+      }
+    } else {
+      checks.database = 'skipped'
     }
 
-    try {
-      await withTimeout(redis.ping(), HEALTH_TIMEOUT)
-    } catch {
-      checks.redis = 'failing'
+    if (redis) {
+      try {
+        await withTimeout(redis.ping(), HEALTH_TIMEOUT)
+      } catch {
+        checks.redis = 'failing'
+      }
+    } else {
+      checks.redis = 'skipped'
     }
 
-    const healthy = checks.database === 'ok' && checks.redis === 'ok'
+    const healthy = checks.database !== 'failing' && checks.redis !== 'failing'
     if (!healthy) set.status = 503
 
     return {

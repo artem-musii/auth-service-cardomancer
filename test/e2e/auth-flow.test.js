@@ -4,7 +4,7 @@ import { InMemoryUserRepository } from '../fakes/in-memory-user-repository.js'
 import { InMemorySessionStore } from '../fakes/in-memory-session-store.js'
 import { InMemoryOtpStore } from '../fakes/in-memory-otp-store.js'
 import { FakeEventPublisher } from '../fakes/fake-event-publisher.js'
-import { RateLimiter } from '../../src/modules/rate-limit/rate-limiter.js'
+import { FakeRedisRateLimiter } from '../fakes/fake-redis-rate-limiter.js'
 
 describe('Auth Flow E2E', () => {
   let app, baseUrl, otpStore
@@ -19,9 +19,11 @@ describe('Auth Flow E2E', () => {
         eventPublisher: FakeEventPublisher(),
         emailPublisher: FakeEventPublisher(),
         rateLimiters: {
-          login: RateLimiter({ store: new Map(), maxAttempts: 100, windowMs: 60 * 60 * 1000 }),
-          register: RateLimiter({ store: new Map(), maxAttempts: 100, windowMs: 60 * 60 * 1000 }),
-          otp: RateLimiter({ store: new Map(), maxAttempts: 100, windowMs: 60 * 60 * 1000 }),
+          login: FakeRedisRateLimiter({ prefix: 'login', maxAttempts: 100, windowMs: 60000 }),
+          'login-ip': FakeRedisRateLimiter({ prefix: 'login-ip', maxAttempts: 100, windowMs: 60000 }),
+          register: FakeRedisRateLimiter({ prefix: 'register', maxAttempts: 100, windowMs: 60000 }),
+          'otp-request': FakeRedisRateLimiter({ prefix: 'otp-request', maxAttempts: 100, windowMs: 60000 }),
+          'otp-verify': FakeRedisRateLimiter({ prefix: 'otp-verify', maxAttempts: 100, windowMs: 60000 }),
         }
       },
       config: {
@@ -32,6 +34,7 @@ describe('Auth Flow E2E', () => {
         google: { clientId: '', clientSecret: '' },
         apple: { clientId: '', teamId: '', keyId: '', privateKeyPath: '' },
         serviceKey: 'test-key',
+        clientUrl: 'http://localhost:8000',
         allowedOrigins: ['http://localhost'],
         port: 0
       }
@@ -62,7 +65,7 @@ describe('Auth Flow E2E', () => {
   }
 
   it('register returns needsVerification', async () => {
-    const res = await register('test@example.com', 'Password123!', 'Test')
+    const res = await register('test@example.com', 'Password123!', 'testuser')
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.needsVerification).toBe(true)
@@ -89,7 +92,7 @@ describe('Auth Flow E2E', () => {
   })
 
   it('login blocked before verification', async () => {
-    await register('unverified@example.com', 'Password123!', 'UV')
+    await register('unverified@example.com', 'Password123!', 'unverified_user')
     const res = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -101,14 +104,14 @@ describe('Auth Flow E2E', () => {
   })
 
   it('re-register for unverified user resends OTP', async () => {
-    const res = await register('unverified@example.com', 'NewPassword123!', 'UV')
+    const res = await register('unverified@example.com', 'NewPassword123!', 'unverified_user')
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.needsVerification).toBe(true)
   })
 
   it('re-register for verified user returns needsVerification silently', async () => {
-    const res = await register('test@example.com', 'Password123!', 'Test')
+    const res = await register('test@example.com', 'Password123!', 'testuser')
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.needsVerification).toBe(true)
@@ -118,7 +121,7 @@ describe('Auth Flow E2E', () => {
     const res = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', password: 'wrong' })
+      body: JSON.stringify({ email: 'test@example.com', password: 'wrongpass123' })
     })
     expect(res.status).toBe(401)
   })
@@ -230,7 +233,7 @@ describe('Auth Flow E2E', () => {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ displayName: 'AB' })
     })
-    expect(res.status).toBe(400)
+    expect(res.status).toBe(422)
   })
 
   it('POST /auth/profile/display-name rejects duplicate', async () => {

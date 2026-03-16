@@ -115,7 +115,8 @@ const createApp = async ({ overrides = {}, config: configOverride } = {}) => {
       })
       set.headers['X-Request-ID'] = requestId
     })
-    .onError(({ error, set }) => {
+    .onError(({ code, error, set }) => {
+      if (code === 'VALIDATION') return
       log.error('unhandled error', { error: error.message, stack: error.stack })
       set.status = 500
       return { error: 'Internal server error' }
