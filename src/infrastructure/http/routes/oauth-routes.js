@@ -1,44 +1,31 @@
-const buildRedirectUrl = (clientUrl, session, user) => {
-  const params = new URLSearchParams({
-    oauth_token: session.token,
-    oauth_userId: session.userId,
-    oauth_expiresAt: session.expiresAt.toISOString()
-  })
-  if (session.displayName) params.set('oauth_displayName', session.displayName)
-  if (!user?.displayName) params.set('oauth_needsDisplayName', 'true')
-  return `${clientUrl}?${params.toString()}`
-}
+const STATE_TTL = 300
+const STATE_PREFIX = 'oauth-state:'
 
-const oauthRoutes = (app, { oauthService, userService, clientUrl }) => {
-  app.get('/auth/google', () => {
+const oauthRoutes = (app, { oauthService, redis, clientUrl }) => {
+  app.get('/auth/google', async () => {
     const state = crypto.randomUUID()
+    await redis.set(STATE_PREFIX + state, '1', 'EX', STATE_TTL)
     return Response.redirect(oauthService.getAuthUrl('google', state), 302)
   })
 
   app.get('/auth/google/callback', async ({ query }) => {
-    const { code } = query
+    const { code, state } = query
     if (!code) return new Response('Missing code', { status: 400 })
-    try {
-      const session = await oauthService.handleCallback('google', code)
-      const user = await userService.findById(session.userId)
-      return Response.redirect(buildRedirectUrl(clientUrl, session, user), 302)
-    } catch (e) {
-      return Response.redirect(`${clientUrl}?oauth_error=${encodeURIComponent(e.message)}`, 302)
+
+    if (!state) {
+      return Response.redirect(`${clientUrl}?oauth_error=${encodeURIComponent('Missing state parameter')}`, 302)
     }
-  })
+    const storedState = await redis.get(STATE_PREFIX + state)
+    if (!storedState) {
+      return Response.redirect(`${clientUrl}?oauth_error=${encodeURIComponent('Invalid or expired state')}`, 302)
+    }
+    await redis.del(STATE_PREFIX + state)
 
-  app.get('/auth/apple', () => {
-    const state = crypto.randomUUID()
-    return Response.redirect(oauthService.getAuthUrl('apple', state), 302)
-  })
-
-  app.get('/auth/apple/callback', async ({ query, body: reqBody }) => {
-    const code = query?.code || reqBody?.code
-    if (!code) return new Response('Missing code', { status: 400 })
     try {
-      const session = await oauthService.handleCallback('apple', code)
-      const user = await userService.findById(session.userId)
-      return Response.redirect(buildRedirectUrl(clientUrl, session, user), 302)
+      const result = await oauthService.handleCallback('google', code)
+      const authCode = crypto.randomUUID()
+      await redis.set(`oauth-code:${authCode}`, JSON.stringify(result), 'EX', 30)
+      return Response.redirect(`${clientUrl}?code=${authCode}`, 302)
     } catch (e) {
       return Response.redirect(`${clientUrl}?oauth_error=${encodeURIComponent(e.message)}`, 302)
     }
