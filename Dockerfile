@@ -8,4 +8,4 @@ WORKDIR /app
 COPY --from=install /app/node_modules ./node_modules
 COPY . .
 EXPOSE 3001
-CMD ["bun", "run", "start"]
+CMD ["sh", "-c", "bun run db:migrate && bun run start"]
