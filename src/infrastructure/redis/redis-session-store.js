@@ -39,10 +39,10 @@ const RedisSessionStore = (redis) => {
 
   const deleteAllForUser = async (userId) => {
     const tokens = await redis.smembers(USER_SESSIONS_PREFIX + userId)
-    for (const token of tokens) {
-      await redis.del(SESSION_PREFIX + token)
-    }
-    await redis.del(USER_SESSIONS_PREFIX + userId)
+    await Promise.all([
+      ...tokens.map((token) => redis.del(SESSION_PREFIX + token)),
+      redis.del(USER_SESSIONS_PREFIX + userId),
+    ])
     return tokens
   }
 
