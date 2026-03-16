@@ -14,6 +14,23 @@ const RedisSessionStore = (redis) => {
     return raw ? JSON.parse(raw) : null
   }
 
+  const getAndRefresh = async (token, fullTtlSeconds) => {
+    const raw = await redis.get(SESSION_PREFIX + token)
+    if (!raw) return null
+    const data = JSON.parse(raw)
+
+    const ttl = await redis.ttl(SESSION_PREFIX + token)
+    const threshold = Math.floor(fullTtlSeconds * 0.85)
+    if (ttl > 0 && ttl < threshold) {
+      await redis.expire(SESSION_PREFIX + token, fullTtlSeconds)
+      if (data.userId) {
+        await redis.expire(USER_SESSIONS_PREFIX + data.userId, fullTtlSeconds)
+      }
+    }
+
+    return data
+  }
+
   const del = async (token) => {
     const data = await get(token)
     await redis.del(SESSION_PREFIX + token)
@@ -29,7 +46,7 @@ const RedisSessionStore = (redis) => {
     return tokens
   }
 
-  return { set, get, delete: del, deleteAllForUser }
+  return { set, get, getAndRefresh, delete: del, deleteAllForUser }
 }
 
 export { RedisSessionStore }

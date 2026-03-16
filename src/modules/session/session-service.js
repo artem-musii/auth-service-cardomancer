@@ -17,7 +17,7 @@ const SessionService = ({ sessionStore, eventPublisher, sessionTtlHours }) => {
   }
 
   const validate = async (token) => {
-    const data = await sessionStore.get(token)
+    const data = await sessionStore.getAndRefresh(token, sessionTtlHours * 3600)
     if (!data) return { valid: false }
     return { valid: true, userId: data.userId, email: data.email, displayName: data.displayName }
   }

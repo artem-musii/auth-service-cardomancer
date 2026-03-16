@@ -7,6 +7,10 @@ const InMemorySessionStore = () => {
 
   const get = async (token) => sessions.get(token) || null
 
+  const getAndRefresh = async (token, _fullTtlSeconds) => {
+    return sessions.get(token) || null
+  }
+
   const del = async (token) => {
     sessions.delete(token)
   }
@@ -22,7 +26,7 @@ const InMemorySessionStore = () => {
     return tokens
   }
 
-  return { set, get, delete: del, deleteAllForUser }
+  return { set, get, getAndRefresh, delete: del, deleteAllForUser }
 }
 
 export { InMemorySessionStore }
