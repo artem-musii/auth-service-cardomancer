@@ -1,6 +1,7 @@
-import { maskEmail } from '../../shared/utils.js'
+import { randomInt } from 'crypto'
+import { maskEmail, secureCompare } from '../../shared/utils.js'
 
-const generateCode = () => String(Math.floor(100000 + Math.random() * 900000))
+const generateCode = () => String(randomInt(100000, 1000000))
 
 const OTP_TTL = 300
 const COOLDOWN_TTL = 60
@@ -32,7 +33,7 @@ const OtpService = ({ otpStore, emailPublisher, log }) => {
     const otp = await otpStore.get(email)
     if (!otp) return { valid: false }
 
-    if (otp.code === code) {
+    if (secureCompare(otp.code, code)) {
       await otpStore.delete(email)
       return { valid: true }
     }

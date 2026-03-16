@@ -129,9 +129,9 @@ const createApp = async ({ overrides = {}, config: configOverride } = {}) => {
       })
       set.headers['X-Request-ID'] = requestId
     })
-    .onError(({ code, error, set }) => {
+    .onError(({ code, error, set, requestId }) => {
       if (code === 'VALIDATION') return
-      log.error('unhandled error', { error: error.message, stack: error.stack })
+      log.error('unhandled error', { error: error.message, stack: error.stack, requestId: requestId || 'unknown' })
       set.status = 500
       return { error: 'Internal server error' }
     })
@@ -157,7 +157,7 @@ const createApp = async ({ overrides = {}, config: configOverride } = {}) => {
   oauthRoutes(app, deps)
   oauthExchangeRoute(app, deps)
 
-  const server = app.listen({ port: config.port, maxRequestBodySize: 65536 })
+  const server = app.listen({ port: config.port, maxRequestBodySize: 65536, idleTimeout: 30 })
   const port = server.server.port
 
   const shutdown = async () => {

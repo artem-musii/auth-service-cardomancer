@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'crypto'
+import { timingSafeEqual, createHmac } from 'crypto'
 
 export function maskEmail(email) {
   const [local, domain] = email.split('@')
@@ -16,6 +16,7 @@ export function extractBearerToken(header) {
 
 export function secureCompare(a, b) {
   if (typeof a !== 'string' || typeof b !== 'string') return false
-  if (a.length !== b.length) return false
-  return timingSafeEqual(Buffer.from(a), Buffer.from(b))
+  const hashA = createHmac('sha256', 'compare').update(a).digest()
+  const hashB = createHmac('sha256', 'compare').update(b).digest()
+  return timingSafeEqual(hashA, hashB)
 }

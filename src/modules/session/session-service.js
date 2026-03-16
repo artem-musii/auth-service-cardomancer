@@ -1,4 +1,7 @@
+import { createHash } from 'crypto'
 import { createSession } from './session-entity.js'
+
+const hashToken = (token) => createHash('sha256').update(token).digest('hex').slice(0, 16)
 
 const SessionService = ({ sessionStore, eventPublisher, sessionTtlHours }) => {
   const createSessionCmd = async ({ userId, email, displayName }) => {
@@ -8,7 +11,7 @@ const SessionService = ({ sessionStore, eventPublisher, sessionTtlHours }) => {
         id: crypto.randomUUID(),
         type: 'session.revoked',
         timestamp: new Date().toISOString(),
-        payload: { userId, token: oldToken },
+        payload: { userId, tokenHash: hashToken(oldToken) },
       })
     }
     const session = createSession({ userId, email, displayName, ttlHours: sessionTtlHours })
@@ -30,7 +33,7 @@ const SessionService = ({ sessionStore, eventPublisher, sessionTtlHours }) => {
         id: crypto.randomUUID(),
         type: 'session.revoked',
         timestamp: new Date().toISOString(),
-        payload: { userId: data.userId, token },
+        payload: { userId: data.userId, tokenHash: hashToken(token) },
       })
     }
   }
@@ -42,7 +45,7 @@ const SessionService = ({ sessionStore, eventPublisher, sessionTtlHours }) => {
         id: crypto.randomUUID(),
         type: 'session.revoked',
         timestamp: new Date().toISOString(),
-        payload: { userId, token },
+        payload: { userId, tokenHash: hashToken(token) },
       })
     }
     return tokens
