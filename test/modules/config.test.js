@@ -10,6 +10,7 @@ describe('loadConfig', () => {
       SESSION_TTL_HOURS: '24',
       SERVICE_KEY: 'key',
       ALLOWED_ORIGINS: 'http://localhost:8000',
+      CLIENT_URL: 'http://localhost:8000',
       PORT: '3001'
     }
     const config = loadConfig(env)
@@ -22,13 +23,25 @@ describe('loadConfig', () => {
     expect(() => loadConfig({})).toThrow()
   })
 
-  it('uses defaults for optional fields', () => {
+  it('throws on missing CLIENT_URL', () => {
     const env = {
       DATABASE_URL: 'postgres://localhost/test',
       REDIS_URL: 'redis://localhost',
       RABBITMQ_URL: 'amqp://localhost',
       SERVICE_KEY: 'key',
       ALLOWED_ORIGINS: 'http://localhost:8000'
+    }
+    expect(() => loadConfig(env)).toThrow('Missing required env var: CLIENT_URL')
+  })
+
+  it('uses defaults for optional fields', () => {
+    const env = {
+      DATABASE_URL: 'postgres://localhost/test',
+      REDIS_URL: 'redis://localhost',
+      RABBITMQ_URL: 'amqp://localhost',
+      SERVICE_KEY: 'key',
+      ALLOWED_ORIGINS: 'http://localhost:8000',
+      CLIENT_URL: 'http://localhost:8000'
     }
     const config = loadConfig(env)
     expect(config.session.ttlHours).toBe(168)

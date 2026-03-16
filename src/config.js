@@ -1,4 +1,4 @@
-const REQUIRED = ['DATABASE_URL', 'REDIS_URL', 'RABBITMQ_URL', 'SERVICE_KEY', 'ALLOWED_ORIGINS']
+const REQUIRED = ['DATABASE_URL', 'REDIS_URL', 'RABBITMQ_URL', 'SERVICE_KEY', 'ALLOWED_ORIGINS', 'CLIENT_URL']
 
 const loadConfig = (env) => {
   for (const key of REQUIRED) {
@@ -15,13 +15,7 @@ const loadConfig = (env) => {
       clientSecret: env.GOOGLE_CLIENT_SECRET || '',
       redirectUri: env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/auth/google/callback'
     },
-    clientUrl: env.CLIENT_URL || 'http://localhost:8000',
-    apple: {
-      clientId: env.APPLE_CLIENT_ID || '',
-      teamId: env.APPLE_TEAM_ID || '',
-      keyId: env.APPLE_KEY_ID || '',
-      privateKeyPath: env.APPLE_PRIVATE_KEY_PATH || ''
-    },
+    clientUrl: env.CLIENT_URL,
     serviceKey: env.SERVICE_KEY,
     allowedOrigins: env.ALLOWED_ORIGINS.split(','),
     port: parseInt(env.PORT || '3001', 10),
