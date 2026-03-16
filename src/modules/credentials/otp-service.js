@@ -1,12 +1,9 @@
+import { maskEmail } from '../../shared/utils.js'
+
 const generateCode = () => String(Math.floor(100000 + Math.random() * 900000))
 
 const OTP_TTL = 300
 const COOLDOWN_TTL = 60
-
-const maskEmail = (email) => {
-  const [local, domain] = email.split('@')
-  return `${local.slice(0, 3)}***@${domain}`
-}
 
 const OtpService = ({ otpStore, emailPublisher, log }) => {
   const requestOtp = async (email) => {

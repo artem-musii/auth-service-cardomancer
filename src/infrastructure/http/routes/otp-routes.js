@@ -1,17 +1,19 @@
-const maskEmail = (email) => {
-  const [local, domain] = email.split('@')
-  return `${local.slice(0, 3)}***@${domain}`
-}
+import { t } from 'elysia'
+import { maskEmail } from '../../../shared/utils.js'
 
 const otpRoutes = (app, { otpService, userService, sessionService, rateLimiters, userRepository, passwordService, log }) => {
   app.post('/auth/otp/request', async ({ body, set }) => {
     const { email } = body
-    if (!email) { set.status = 400; return { error: 'Email required' } }
 
     log.debug('otp request attempt', { email: maskEmail(email) })
 
-    const rl = rateLimiters.otp.check(email.toLowerCase().trim())
-    if (!rl.allowed) { log.warn('otp request rate limit hit', { email: maskEmail(email) }); set.status = 429; return { error: 'Too many attempts, try again later' } }
+    const rl = await rateLimiters['otp-request'].check(email.toLowerCase().trim())
+    if (!rl.allowed) {
+      log.warn('otp request rate limit hit', { email: maskEmail(email) })
+      set.status = 429
+      set.headers['Retry-After'] = String(Math.ceil(rl.retryAfterMs / 1000))
+      return { error: 'Too many attempts, try again later' }
+    }
 
     try {
       await otpService.requestOtp(email)
@@ -21,16 +23,20 @@ const otpRoutes = (app, { otpService, userService, sessionService, rateLimiters,
       log.error('otp request failed', { email: maskEmail(email), error: e.message })
       set.status = 429; return { error: e.message }
     }
-  })
+  }, { body: t.Object({ email: t.String({ format: 'email' }) }) })
 
   app.post('/auth/otp/verify', async ({ body, set }) => {
     const { email, code } = body
-    if (!email || !code) { set.status = 400; return { error: 'Email and code required' } }
 
     log.debug('otp verify attempt', { email: maskEmail(email) })
 
-    const rl = rateLimiters.otp.check(email.toLowerCase().trim())
-    if (!rl.allowed) { log.warn('otp verify rate limit hit', { email: maskEmail(email) }); set.status = 429; return { error: 'Too many attempts, try again later' } }
+    const rl = await rateLimiters['otp-verify'].check(email.toLowerCase().trim())
+    if (!rl.allowed) {
+      log.warn('otp verify rate limit hit', { email: maskEmail(email) })
+      set.status = 429
+      set.headers['Retry-After'] = String(Math.ceil(rl.retryAfterMs / 1000))
+      return { error: 'Too many attempts, try again later' }
+    }
 
     const result = await otpService.verifyOtp(email, code)
     if (!result.valid) { log.warn('invalid otp', { email: maskEmail(email) }); set.status = 401; return { error: 'Invalid or expired code' } }
@@ -58,7 +64,7 @@ const otpRoutes = (app, { otpService, userService, sessionService, rateLimiters,
     const session = await sessionService.createSession({ userId: user.id, email: user.email, displayName: user.displayName })
     if (!user.displayName) session.needsDisplayName = true
     return session
-  })
+  }, { body: t.Object({ email: t.String({ format: 'email' }), code: t.String({ minLength: 6, maxLength: 6 }) }) })
 
   return app
 }

@@ -1,18 +1,20 @@
-const maskEmail = (email) => {
-  const [local, domain] = email.split('@')
-  return `${local.slice(0, 3)}***@${domain}`
-}
+import { t } from 'elysia'
+import { maskEmail, extractBearerToken } from '../../../shared/utils.js'
 
 const authRoutes = (app, { userService, sessionService, passwordService, userRepository, rateLimiters, otpService, log }) => {
   app.post('/auth/register', async ({ body, set, server, request }) => {
     const { email, password, displayName } = body
-    if (!email || !password) { set.status = 400; return { error: 'Email and password required' } }
 
     log.debug('register attempt', { email: maskEmail(email) })
 
     const ip = server?.requestIP(request)?.address || 'unknown'
-    const rl = rateLimiters.register.check(ip)
-    if (!rl.allowed) { log.warn('register rate limit hit', { ip }); set.status = 429; return { error: 'Too many attempts, try again later' } }
+    const rl = await rateLimiters.register.check(ip)
+    if (!rl.allowed) {
+      log.warn('register rate limit hit', { ip })
+      set.status = 429
+      set.headers['Retry-After'] = String(Math.ceil(rl.retryAfterMs / 1000))
+      return { error: 'Too many attempts, try again later' }
+    }
 
     const normalizedEmail = email.toLowerCase().trim()
     const existing = await userService.findByEmail(normalizedEmail)
@@ -48,15 +50,18 @@ const authRoutes = (app, { userService, sessionService, passwordService, userRep
       log.error('registration failed', { email: maskEmail(email), error: e.message })
       set.status = 409; return { error: e.message }
     }
-  })
+  }, { body: t.Object({ email: t.String({ format: 'email' }), password: t.String({ minLength: 8, maxLength: 128 }), displayName: t.Optional(t.String({ pattern: '^[a-z0-9_]{5,32}$' })) }) })
 
   app.post('/auth/register/verify', async ({ body, set }) => {
     const { email, code } = body
-    if (!email || !code) { set.status = 400; return { error: 'Email and code required' } }
 
     const normalizedEmail = email.toLowerCase().trim()
-    const rl = rateLimiters.otp.check(normalizedEmail)
-    if (!rl.allowed) { set.status = 429; return { error: 'Too many attempts, try again later' } }
+    const rl = await rateLimiters['otp-verify'].check(normalizedEmail)
+    if (!rl.allowed) {
+      set.status = 429
+      set.headers['Retry-After'] = String(Math.ceil(rl.retryAfterMs / 1000))
+      return { error: 'Too many attempts, try again later' }
+    }
 
     const user = await userService.findByEmail(normalizedEmail)
     if (!user) { set.status = 404; return { error: 'User not found' } }
@@ -69,16 +74,28 @@ const authRoutes = (app, { userService, sessionService, passwordService, userRep
     const session = await sessionService.createSession({ userId: user.id, email: user.email, displayName: user.displayName })
     if (!user.displayName) session.needsDisplayName = true
     return session
-  })
+  }, { body: t.Object({ email: t.String({ format: 'email' }), code: t.String({ minLength: 6, maxLength: 6 }) }) })
 
-  app.post('/auth/login', async ({ body, set }) => {
+  app.post('/auth/login', async ({ body, set, server, request }) => {
     const { email, password } = body
-    if (!email || !password) { set.status = 400; return { error: 'Email and password required' } }
 
     log.debug('login attempt', { email: maskEmail(email) })
 
-    const rl = rateLimiters.login.check(email.toLowerCase().trim())
-    if (!rl.allowed) { log.warn('login rate limit hit', { email: maskEmail(email) }); set.status = 429; return { error: 'Too many attempts, try again later' } }
+    const ip = server?.requestIP(request)?.address || 'unknown'
+    const ipRl = await rateLimiters['login-ip'].check(ip)
+    if (!ipRl.allowed) {
+      log.warn('login ip rate limit hit', { ip })
+      set.status = 429
+      set.headers['Retry-After'] = String(Math.ceil(ipRl.retryAfterMs / 1000))
+      return { error: 'Too many attempts, try again later' }
+    }
+    const emailRl = await rateLimiters.login.check(email.toLowerCase().trim())
+    if (!emailRl.allowed) {
+      log.warn('login rate limit hit', { email: maskEmail(email) })
+      set.status = 429
+      set.headers['Retry-After'] = String(Math.ceil(emailRl.retryAfterMs / 1000))
+      return { error: 'Too many attempts, try again later' }
+    }
 
     const user = await userService.findByEmail(email)
     if (!user || user.deletedAt) { set.status = 401; return { error: 'Invalid credentials' } }
@@ -103,10 +120,10 @@ const authRoutes = (app, { userService, sessionService, passwordService, userRep
     const session = await sessionService.createSession({ userId: user.id, email: user.email, displayName: user.displayName })
     if (!user.displayName) session.needsDisplayName = true
     return session
-  })
+  }, { body: t.Object({ email: t.String({ format: 'email' }), password: t.String({ minLength: 8, maxLength: 128 }) }) })
 
   app.get('/auth/me', async ({ headers, set }) => {
-    const token = headers.authorization?.replace('Bearer ', '')
+    const token = extractBearerToken(headers.authorization)
     if (!token) { set.status = 401; return { error: 'No token' } }
     const result = await sessionService.validate(token)
     if (!result.valid) { set.status = 401; return { error: 'Invalid session' } }
@@ -115,7 +132,7 @@ const authRoutes = (app, { userService, sessionService, passwordService, userRep
   })
 
   app.post('/auth/logout', async ({ headers, set }) => {
-    const token = headers.authorization?.replace('Bearer ', '')
+    const token = extractBearerToken(headers.authorization)
     if (!token) { set.status = 401; return { error: 'No token' } }
     await sessionService.revoke(token)
     log.info('logout successful')
@@ -124,11 +141,14 @@ const authRoutes = (app, { userService, sessionService, passwordService, userRep
 
   app.post('/auth/password/reset', async ({ body, set }) => {
     const { email, newPassword } = body
-    if (!email || !newPassword) { set.status = 400; return { error: 'Email and new password required' } }
 
     const normalizedEmail = email.toLowerCase().trim()
-    const rl = rateLimiters.otp.check(normalizedEmail)
-    if (!rl.allowed) { set.status = 429; return { error: 'Too many attempts, try again later' } }
+    const rl = await rateLimiters['otp-request'].check(normalizedEmail)
+    if (!rl.allowed) {
+      set.status = 429
+      set.headers['Retry-After'] = String(Math.ceil(rl.retryAfterMs / 1000))
+      return { error: 'Too many attempts, try again later' }
+    }
 
     const user = await userService.findByEmail(normalizedEmail)
     if (!user || !user.emailVerifiedAt) { return { otpSent: true } }
@@ -138,15 +158,14 @@ const authRoutes = (app, { userService, sessionService, passwordService, userRep
     try { await otpService.requestOtp(normalizedEmail) } catch { void 0 }
     log.info('password reset requested', { email: maskEmail(normalizedEmail) })
     return { otpSent: true }
-  })
+  }, { body: t.Object({ email: t.String({ format: 'email' }), newPassword: t.String({ minLength: 8, maxLength: 128 }) }) })
 
   app.post('/auth/profile/display-name', async ({ body, headers, set }) => {
-    const token = headers.authorization?.replace('Bearer ', '')
+    const token = extractBearerToken(headers.authorization)
     if (!token) { set.status = 401; return { error: 'No token' } }
     const session = await sessionService.validate(token)
     if (!session.valid) { set.status = 401; return { error: 'Invalid session' } }
     const { displayName } = body
-    if (!displayName) { set.status = 400; return { error: 'Display name required' } }
     try {
       await userService.updateDisplayName(session.userId, displayName)
       await sessionService.updateSessionDisplayName(token, displayName)
@@ -156,7 +175,7 @@ const authRoutes = (app, { userService, sessionService, passwordService, userRep
       if (e.message === 'Display name already taken') { set.status = 409; return { error: e.message } }
       set.status = 500; return { error: 'Internal error' }
     }
-  })
+  }, { body: t.Object({ displayName: t.String({ pattern: '^[a-z0-9_]{5,32}$' }) }) })
 
   return app
 }
