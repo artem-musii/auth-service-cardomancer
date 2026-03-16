@@ -8,7 +8,7 @@ const createSession = ({ userId, email, displayName, ttlHours }) => {
     token: generateToken(),
     data: { userId, email, displayName, expiresAt },
     ttlSeconds: ttlHours * 60 * 60,
-    expiresAt
+    expiresAt,
   }
 }
 

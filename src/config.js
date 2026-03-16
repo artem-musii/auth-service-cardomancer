@@ -13,13 +13,13 @@ const loadConfig = (env) => {
     google: {
       clientId: env.GOOGLE_CLIENT_ID || '',
       clientSecret: env.GOOGLE_CLIENT_SECRET || '',
-      redirectUri: env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/auth/google/callback'
+      redirectUri: env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/auth/google/callback',
     },
     clientUrl: env.CLIENT_URL,
     serviceKey: env.SERVICE_KEY,
     allowedOrigins: env.ALLOWED_ORIGINS.split(','),
     port: parseInt(env.PORT || '3001', 10),
-    logLevel: env.LOG_LEVEL || 'info'
+    logLevel: env.LOG_LEVEL || 'info',
   }
 }
 

@@ -23,7 +23,7 @@ const OtpService = ({ otpStore, emailPublisher, log }) => {
       id: crypto.randomUUID(),
       type: 'email.send',
       timestamp: new Date().toISOString(),
-      payload: { to: email, template: 'otp-code', variables: { code } }
+      payload: { to: email, template: 'otp-code', variables: { code } },
     })
     if (log) log.debug('otp email event published', { email: maskEmail(email) })
   }

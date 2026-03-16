@@ -11,7 +11,7 @@ describe('loadConfig', () => {
       SERVICE_KEY: 'key',
       ALLOWED_ORIGINS: 'http://localhost:8000',
       CLIENT_URL: 'http://localhost:8000',
-      PORT: '3001'
+      PORT: '3001',
     }
     const config = loadConfig(env)
     expect(config.database.url).toBe('postgres://localhost/test')
@@ -29,7 +29,7 @@ describe('loadConfig', () => {
       REDIS_URL: 'redis://localhost',
       RABBITMQ_URL: 'amqp://localhost',
       SERVICE_KEY: 'key',
-      ALLOWED_ORIGINS: 'http://localhost:8000'
+      ALLOWED_ORIGINS: 'http://localhost:8000',
     }
     expect(() => loadConfig(env)).toThrow('Missing required env var: CLIENT_URL')
   })
@@ -41,7 +41,7 @@ describe('loadConfig', () => {
       RABBITMQ_URL: 'amqp://localhost',
       SERVICE_KEY: 'key',
       ALLOWED_ORIGINS: 'http://localhost:8000',
-      CLIENT_URL: 'http://localhost:8000'
+      CLIENT_URL: 'http://localhost:8000',
     }
     const config = loadConfig(env)
     expect(config.session.ttlHours).toBe(168)

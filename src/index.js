@@ -46,25 +46,36 @@ const createApp = async ({ overrides = {}, config: configOverride } = {}) => {
     container.register('sessionStore', () => RedisSessionStore(redis))
     container.register('otpStore', () => RedisOtpStore(redis))
     container.register('eventPublisher', () => RabbitMQPublisher(rabbitManager, { log }))
-    container.register('emailPublisher', () => RabbitMQPublisher(rabbitManager, { exchange: 'email.commands', type: 'direct', log }))
+    container.register('emailPublisher', () =>
+      RabbitMQPublisher(rabbitManager, { exchange: 'email.commands', type: 'direct', log }),
+    )
   }
 
   container.register('passwordService', () => overrides.passwordService || PasswordService())
 
-  container.register('userService', (c) =>
-    overrides.userService || UserService({ userRepository: c.resolve('userRepository'), eventPublisher: c.resolve('eventPublisher') })
+  container.register(
+    'userService',
+    (c) =>
+      overrides.userService ||
+      UserService({ userRepository: c.resolve('userRepository'), eventPublisher: c.resolve('eventPublisher') }),
   )
 
-  container.register('sessionService', (c) =>
-    overrides.sessionService || SessionService({
-      sessionStore: c.resolve('sessionStore'),
-      eventPublisher: c.resolve('eventPublisher'),
-      sessionTtlHours: config.session.ttlHours
-    })
+  container.register(
+    'sessionService',
+    (c) =>
+      overrides.sessionService ||
+      SessionService({
+        sessionStore: c.resolve('sessionStore'),
+        eventPublisher: c.resolve('eventPublisher'),
+        sessionTtlHours: config.session.ttlHours,
+      }),
   )
 
-  container.register('otpService', (c) =>
-    overrides.otpService || OtpService({ otpStore: c.resolve('otpStore'), emailPublisher: c.resolve('emailPublisher'), log })
+  container.register(
+    'otpService',
+    (c) =>
+      overrides.otpService ||
+      OtpService({ otpStore: c.resolve('otpStore'), emailPublisher: c.resolve('emailPublisher'), log }),
   )
 
   container.register('oauthService', (c) => {
@@ -73,15 +84,18 @@ const createApp = async ({ overrides = {}, config: configOverride } = {}) => {
       providers.google = GoogleProvider({
         clientId: config.google.clientId,
         clientSecret: config.google.clientSecret,
-        redirectUri: config.google.redirectUri
+        redirectUri: config.google.redirectUri,
       })
     }
-    return overrides.oauthService || OAuthService({
-      userService: c.resolve('userService'),
-      sessionService: c.resolve('sessionService'),
-      userRepository: c.resolve('userRepository'),
-      providers
-    })
+    return (
+      overrides.oauthService ||
+      OAuthService({
+        userService: c.resolve('userService'),
+        sessionService: c.resolve('sessionService'),
+        userRepository: c.resolve('userRepository'),
+        providers,
+      })
+    )
   })
 
   const rateLimiters = overrides.rateLimiters || {

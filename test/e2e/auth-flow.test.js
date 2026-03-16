@@ -24,7 +24,7 @@ describe('Auth Flow E2E', () => {
           register: FakeRedisRateLimiter({ prefix: 'register', maxAttempts: 100, windowMs: 60000 }),
           'otp-request': FakeRedisRateLimiter({ prefix: 'otp-request', maxAttempts: 100, windowMs: 60000 }),
           'otp-verify': FakeRedisRateLimiter({ prefix: 'otp-verify', maxAttempts: 100, windowMs: 60000 }),
-        }
+        },
       },
       config: {
         database: { url: '' },
@@ -36,8 +36,8 @@ describe('Auth Flow E2E', () => {
         serviceKey: 'test-key',
         clientUrl: 'http://localhost:8000',
         allowedOrigins: ['http://localhost'],
-        port: 0
-      }
+        port: 0,
+      },
     })
     app = result.app
     baseUrl = `http://localhost:${result.port}`
@@ -49,7 +49,7 @@ describe('Auth Flow E2E', () => {
     const res = await fetch(`${baseUrl}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, displayName })
+      body: JSON.stringify({ email, password, displayName }),
     })
     return res
   }
@@ -59,7 +59,7 @@ describe('Auth Flow E2E', () => {
     const res = await fetch(`${baseUrl}/auth/register/verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, code: otp.code })
+      body: JSON.stringify({ email, code: otp.code }),
     })
     return res
   }
@@ -84,7 +84,7 @@ describe('Auth Flow E2E', () => {
     const res = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', password: 'Password123!' })
+      body: JSON.stringify({ email: 'test@example.com', password: 'Password123!' }),
     })
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -96,7 +96,7 @@ describe('Auth Flow E2E', () => {
     const res = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'unverified@example.com', password: 'Password123!' })
+      body: JSON.stringify({ email: 'unverified@example.com', password: 'Password123!' }),
     })
     expect(res.status).toBe(403)
     const body = await res.json()
@@ -121,7 +121,7 @@ describe('Auth Flow E2E', () => {
     const res = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', password: 'wrongpass123' })
+      body: JSON.stringify({ email: 'test@example.com', password: 'wrongpass123' }),
     })
     expect(res.status).toBe(401)
   })
@@ -130,14 +130,14 @@ describe('Auth Flow E2E', () => {
     const login = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', password: 'Password123!' })
+      body: JSON.stringify({ email: 'test@example.com', password: 'Password123!' }),
     })
     const { token } = await login.json()
 
     const res = await fetch(`${baseUrl}/auth/validate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Service-Key': 'test-key' },
-      body: JSON.stringify({ token })
+      body: JSON.stringify({ token }),
     })
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -149,19 +149,19 @@ describe('Auth Flow E2E', () => {
     const login = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', password: 'Password123!' })
+      body: JSON.stringify({ email: 'test@example.com', password: 'Password123!' }),
     })
     const { token } = await login.json()
 
     await fetch(`${baseUrl}/auth/logout`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     })
 
     const validate = await fetch(`${baseUrl}/auth/validate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Service-Key': 'test-key' },
-      body: JSON.stringify({ token })
+      body: JSON.stringify({ token }),
     })
     const body = await validate.json()
     expect(body.valid).toBe(false)
@@ -179,7 +179,7 @@ describe('Auth Flow E2E', () => {
     const res = await fetch(`${baseUrl}/auth/validate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: 'any' })
+      body: JSON.stringify({ token: 'any' }),
     })
     expect(res.status).toBe(403)
   })
@@ -204,7 +204,7 @@ describe('Auth Flow E2E', () => {
     const verifyRes = await verifyEmail('me_noname@example.com')
     const { token } = await verifyRes.json()
     const res = await fetch(`${baseUrl}/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
     })
     const body = await res.json()
     expect(body.needsDisplayName).toBe(true)
@@ -217,7 +217,7 @@ describe('Auth Flow E2E', () => {
     const res = await fetch(`${baseUrl}/auth/profile/display-name`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ displayName: 'my_username' })
+      body: JSON.stringify({ displayName: 'my_username' }),
     })
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -231,7 +231,7 @@ describe('Auth Flow E2E', () => {
     const res = await fetch(`${baseUrl}/auth/profile/display-name`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ displayName: 'AB' })
+      body: JSON.stringify({ displayName: 'AB' }),
     })
     expect(res.status).toBe(422)
   })
@@ -245,7 +245,7 @@ describe('Auth Flow E2E', () => {
     const res = await fetch(`${baseUrl}/auth/profile/display-name`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ displayName: 'unique_name1' })
+      body: JSON.stringify({ displayName: 'unique_name1' }),
     })
     expect(res.status).toBe(409)
   })
@@ -254,7 +254,7 @@ describe('Auth Flow E2E', () => {
     const res = await fetch(`${baseUrl}/auth/profile/display-name`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ displayName: 'test_name' })
+      body: JSON.stringify({ displayName: 'test_name' }),
     })
     expect(res.status).toBe(401)
   })
@@ -265,7 +265,7 @@ describe('Auth Flow E2E', () => {
     const res = await fetch(`${baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'loginndn@example.com', password: 'Password123!' })
+      body: JSON.stringify({ email: 'loginndn@example.com', password: 'Password123!' }),
     })
     const body = await res.json()
     expect(body.needsDisplayName).toBe(true)

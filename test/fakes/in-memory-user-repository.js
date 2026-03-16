@@ -10,7 +10,7 @@ const InMemoryUserRepository = () => {
       emailVerifiedAt: null,
       deletedAt: null,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     }
     users.set(user.id, user)
     return user
@@ -42,8 +42,7 @@ const InMemoryUserRepository = () => {
   const findAuthMethod = async (provider, providerId) =>
     authMethods.find((m) => m.provider === provider && m.providerId === providerId) || null
 
-  const findAuthMethodsByUserId = async (userId) =>
-    authMethods.filter((m) => m.userId === userId)
+  const findAuthMethodsByUserId = async (userId) => authMethods.filter((m) => m.userId === userId)
 
   const createAuthMethod = async ({ userId, provider, providerId = null, passwordHash = null }) => {
     const method = {
@@ -52,7 +51,7 @@ const InMemoryUserRepository = () => {
       provider,
       providerId,
       passwordHash,
-      createdAt: new Date()
+      createdAt: new Date(),
     }
     authMethods.push(method)
     return method
@@ -65,7 +64,17 @@ const InMemoryUserRepository = () => {
     return method
   }
 
-  return { create, findById, findByEmail, findByDisplayName, update, findAuthMethod, findAuthMethodsByUserId, createAuthMethod, updateAuthMethod }
+  return {
+    create,
+    findById,
+    findByEmail,
+    findByDisplayName,
+    update,
+    findAuthMethod,
+    findAuthMethodsByUserId,
+    createAuthMethod,
+    updateAuthMethod,
+  }
 }
 
 export { InMemoryUserRepository }

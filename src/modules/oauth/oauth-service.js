@@ -32,7 +32,7 @@ const OAuthService = ({ userService, sessionService, userRepository, providers }
     await userRepository.createAuthMethod({
       userId: user.id,
       provider: providerName,
-      providerId: info.providerId
+      providerId: info.providerId,
     })
 
     return sessionService.createSession({ userId: user.id, email: user.email, displayName: user.displayName })

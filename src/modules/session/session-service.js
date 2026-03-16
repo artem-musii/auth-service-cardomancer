@@ -8,7 +8,7 @@ const SessionService = ({ sessionStore, eventPublisher, sessionTtlHours }) => {
         id: crypto.randomUUID(),
         type: 'session.revoked',
         timestamp: new Date().toISOString(),
-        payload: { userId, token: oldToken }
+        payload: { userId, token: oldToken },
       })
     }
     const session = createSession({ userId, email, displayName, ttlHours: sessionTtlHours })
@@ -30,7 +30,7 @@ const SessionService = ({ sessionStore, eventPublisher, sessionTtlHours }) => {
         id: crypto.randomUUID(),
         type: 'session.revoked',
         timestamp: new Date().toISOString(),
-        payload: { userId: data.userId, token }
+        payload: { userId: data.userId, token },
       })
     }
   }
@@ -42,7 +42,7 @@ const SessionService = ({ sessionStore, eventPublisher, sessionTtlHours }) => {
         id: crypto.randomUUID(),
         type: 'session.revoked',
         timestamp: new Date().toISOString(),
-        payload: { userId, token }
+        payload: { userId, token },
       })
     }
     return tokens

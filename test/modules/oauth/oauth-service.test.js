@@ -14,8 +14,15 @@ describe('OAuthService', () => {
     const events = FakeEventPublisher()
     const userService = UserService({ userRepository: userRepo, eventPublisher: events })
     const sessionService = SessionService({ sessionStore, eventPublisher: events, sessionTtlHours: 168 })
-    const googleProvider = FakeOAuthProvider({ userInfo: { providerId: 'g123', email: 'user@gmail.com', displayName: 'G User' } })
-    const service = OAuthService({ userService, sessionService, userRepository: userRepo, providers: { google: googleProvider } })
+    const googleProvider = FakeOAuthProvider({
+      userInfo: { providerId: 'g123', email: 'user@gmail.com', displayName: 'G User' },
+    })
+    const service = OAuthService({
+      userService,
+      sessionService,
+      userRepository: userRepo,
+      providers: { google: googleProvider },
+    })
     return { service, userRepo, events, userService }
   }
 

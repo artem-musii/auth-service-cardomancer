@@ -23,19 +23,24 @@ const DrizzleUserRepository = (db) => {
   }
 
   const update = async (id, data) => {
-    const rows = await db.update(users).set({ ...data, updatedAt: new Date() }).where(eq(users.id, id)).returning()
+    const rows = await db
+      .update(users)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning()
     return rows[0]
   }
 
   const findAuthMethod = async (provider, providerId) => {
-    const rows = await db.select().from(authMethods)
+    const rows = await db
+      .select()
+      .from(authMethods)
       .where(and(eq(authMethods.provider, provider), eq(authMethods.providerId, providerId)))
       .limit(1)
     return rows[0] || null
   }
 
-  const findAuthMethodsByUserId = async (userId) =>
-    db.select().from(authMethods).where(eq(authMethods.userId, userId))
+  const findAuthMethodsByUserId = async (userId) => db.select().from(authMethods).where(eq(authMethods.userId, userId))
 
   const createAuthMethod = async ({ userId, provider, providerId = null, passwordHash = null }) => {
     const rows = await db.insert(authMethods).values({ userId, provider, providerId, passwordHash }).returning()
@@ -47,7 +52,17 @@ const DrizzleUserRepository = (db) => {
     return rows[0]
   }
 
-  return { findById, findByEmail, findByDisplayName, create, update, findAuthMethod, findAuthMethodsByUserId, createAuthMethod, updateAuthMethod }
+  return {
+    findById,
+    findByEmail,
+    findByDisplayName,
+    create,
+    update,
+    findAuthMethod,
+    findAuthMethodsByUserId,
+    createAuthMethod,
+    updateAuthMethod,
+  }
 }
 
 export { DrizzleUserRepository }

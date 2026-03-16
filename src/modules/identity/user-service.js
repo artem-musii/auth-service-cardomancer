@@ -11,7 +11,7 @@ const UserService = ({ userRepository, eventPublisher }) => {
       id: crypto.randomUUID(),
       type: 'user.created',
       timestamp: new Date().toISOString(),
-      payload: { userId: user.id, email: user.email }
+      payload: { userId: user.id, email: user.email },
     })
     return user
   }
@@ -25,7 +25,7 @@ const UserService = ({ userRepository, eventPublisher }) => {
       id: crypto.randomUUID(),
       type: 'user.deleted',
       timestamp: new Date().toISOString(),
-      payload: { userId: id }
+      payload: { userId: id },
     })
   }
 

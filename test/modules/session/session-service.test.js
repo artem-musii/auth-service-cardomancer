@@ -13,7 +13,7 @@ describe('SessionService', () => {
       sessionStore,
       userRepository,
       eventPublisher,
-      sessionTtlHours: 168
+      sessionTtlHours: 168,
     })
     const user = await userRepository.create({ email: 'a@b.com', displayName: 'A' })
     return { service, sessionStore, userRepository, eventPublisher, user }

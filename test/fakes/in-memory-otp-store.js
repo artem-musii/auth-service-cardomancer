@@ -16,11 +16,15 @@ const InMemoryOtpStore = () => {
     return otp.attemptsLeft
   }
 
-  const del = async (email) => { otps.delete(email) }
+  const del = async (email) => {
+    otps.delete(email)
+  }
 
   const getCooldown = async (email) => cooldowns.has(email)
 
-  const setCooldown = async (email, _ttlSeconds) => { cooldowns.add(email) }
+  const setCooldown = async (email, _ttlSeconds) => {
+    cooldowns.add(email)
+  }
 
   const pendingPasswords = new Map()
 

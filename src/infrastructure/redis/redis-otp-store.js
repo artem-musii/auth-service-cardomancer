@@ -26,7 +26,9 @@ const RedisOtpStore = (redis) => {
     return data.attemptsLeft
   }
 
-  const del = async (email) => { await redis.del(OTP_PREFIX + email) }
+  const del = async (email) => {
+    await redis.del(OTP_PREFIX + email)
+  }
 
   const getCooldown = async (email) => {
     const exists = await redis.exists(COOLDOWN_PREFIX + email)

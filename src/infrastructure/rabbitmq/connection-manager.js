@@ -55,9 +55,17 @@ const RabbitMQConnectionManager = ({ url, log }) => {
 
   const close = async () => {
     closed = true
-    try { await channel?.close() } catch {}
+    try {
+      await channel?.close()
+    } catch (_e) {
+      // intentional: ignore close errors during shutdown
+    }
     channel = null
-    try { await connection?.close() } catch {}
+    try {
+      await connection?.close()
+    } catch (_e) {
+      // intentional: ignore close errors during shutdown
+    }
     connection = null
   }
 

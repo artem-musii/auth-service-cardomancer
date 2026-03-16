@@ -1,6 +1,6 @@
 const createUser = ({ email, displayName = null }) => ({
   email: email.toLowerCase().trim(),
-  displayName
+  displayName,
 })
 
 export { createUser }

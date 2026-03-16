@@ -11,7 +11,7 @@ const GoogleProvider = ({ clientId, clientSecret, redirectUri, fetchFn = fetch }
       response_type: 'code',
       scope: 'email profile',
       access_type: 'offline',
-      prompt: 'consent'
+      prompt: 'consent',
     })
     return `${GOOGLE_AUTH_URL}?${params.toString()}`
   }
@@ -25,14 +25,14 @@ const GoogleProvider = ({ clientId, clientSecret, redirectUri, fetchFn = fetch }
         client_id: clientId,
         client_secret: clientSecret,
         redirect_uri: redirectUri,
-        grant_type: 'authorization_code'
-      }).toString()
+        grant_type: 'authorization_code',
+      }).toString(),
     })
     if (!tokenRes.ok) throw new Error('Google OAuth token exchange failed')
     const { access_token } = await tokenRes.json()
 
     const userRes = await fetchFn(GOOGLE_USERINFO_URL, {
-      headers: { Authorization: `Bearer ${access_token}` }
+      headers: { Authorization: `Bearer ${access_token}` },
     })
     if (!userRes.ok) throw new Error('Google OAuth userinfo fetch failed')
     const { id, email, name } = await userRes.json()

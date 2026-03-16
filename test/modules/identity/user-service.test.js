@@ -75,7 +75,7 @@ describe('UserService', () => {
   })
 
   it('updateDisplayName rejects duplicate', async () => {
-    const { service, repo } = setup()
+    const { service, _repo } = setup()
     const u1 = await service.createUser({ email: 'a@b.com' })
     await service.updateDisplayName(u1.id, 'taken_name')
     const u2 = await service.createUser({ email: 'c@d.com' })

@@ -5,7 +5,7 @@ describe('GoogleProvider', () => {
   const config = {
     clientId: 'test-client-id',
     clientSecret: 'test-client-secret',
-    redirectUri: 'http://localhost:3001/auth/google/callback'
+    redirectUri: 'http://localhost:3001/auth/google/callback',
   }
 
   describe('getAuthUrl', () => {
