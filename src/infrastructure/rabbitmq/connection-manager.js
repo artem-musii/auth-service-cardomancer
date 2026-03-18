@@ -72,7 +72,7 @@ const RabbitMQConnectionManager = ({ url, log }) => {
     connection = null
   }
 
-  return { connect, getChannel, isConnected, registerPublisher, close }
+  return { connect, getChannel, isConnected, registerPublisher, scheduleReconnect, close }
 }
 
 export { RabbitMQConnectionManager }

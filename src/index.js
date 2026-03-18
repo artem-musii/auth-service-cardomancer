@@ -44,6 +44,7 @@ const createApp = async ({ overrides = {}, config: configOverride } = {}) => {
       await rabbitManager.connect()
     } catch (err) {
       log.warn('rabbitmq initial connection failed, will retry in background', { err: err.message })
+      rabbitManager.scheduleReconnect()
     }
 
     container.register('userRepository', () => DrizzleUserRepository(db))
@@ -183,8 +184,14 @@ const createApp = async ({ overrides = {}, config: configOverride } = {}) => {
 export { createApp }
 
 if (import.meta.main) {
-  createApp().then(({ port }) => {
-    const log = createLogger('auth-service', process.env.LOG_LEVEL || 'info')
-    log.info('auth service started', { port })
-  })
+  createApp()
+    .then(({ port }) => {
+      const log = createLogger('auth-service', process.env.LOG_LEVEL || 'info')
+      log.info('auth service started', { port })
+    })
+    .catch((err) => {
+      const log = createLogger('auth-service', process.env.LOG_LEVEL || 'info')
+      log.error('failed to start auth service', { err: err.message, stack: err.stack })
+      process.exit(1)
+    })
 }
