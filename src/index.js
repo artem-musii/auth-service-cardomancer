@@ -150,7 +150,7 @@ const createApp = async ({ overrides = {}, config: configOverride } = {}) => {
     log,
   }
 
-  healthRoutes(app, { db, redis })
+  healthRoutes(app, { db, redis, rabbitManager })
   authRoutes(app, deps)
   validateRoutes(app, deps)
   otpRoutes(app, deps)
