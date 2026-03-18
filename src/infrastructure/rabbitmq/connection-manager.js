@@ -15,12 +15,15 @@ const RabbitMQConnectionManager = ({ url, log }) => {
       if (log) log.error('rabbitmq connection error', { err })
     })
     connection.on('close', () => {
+      channel = null
+      connection = null
       if (!closed) scheduleReconnect()
     })
     channel.on('error', (err) => {
       if (log) log.error('rabbitmq channel error', { err })
     })
     channel.on('close', () => {
+      channel = null
       if (!closed) scheduleReconnect()
     })
 
