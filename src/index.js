@@ -40,7 +40,11 @@ const createApp = async ({ overrides = {}, config: configOverride } = {}) => {
     redis = new RedisClient(config.redis.url)
     log.info('redis connected')
     rabbitManager = RabbitMQConnectionManager({ url: config.rabbitmq.url, log })
-    await rabbitManager.connect()
+    try {
+      await rabbitManager.connect()
+    } catch (err) {
+      log.warn('rabbitmq initial connection failed, will retry in background', { err: err.message })
+    }
 
     container.register('userRepository', () => DrizzleUserRepository(db))
     container.register('sessionStore', () => RedisSessionStore(redis))
