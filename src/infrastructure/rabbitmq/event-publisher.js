@@ -27,11 +27,13 @@ const RabbitMQPublisher = (connectionManager, { exchange = 'auth.events', type =
     const channel = connectionManager.getChannel()
     if (!channel) {
       ready = false
+      if (log) log.warn('rabbitmq channel lost, event dropped', { type: event.type })
       return false
     }
     const routingKey = event.type
     const message = Buffer.from(JSON.stringify(event))
-    channel.publish(exchange, routingKey, message, { persistent: true })
+    const sent = channel.publish(exchange, routingKey, message, { persistent: true })
+    if (!sent && log) log.warn('rabbitmq backpressure, event may be delayed', { type: event.type })
     if (log) log.debug('event published', { exchange, type: event.type })
     return true
   }

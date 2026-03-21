@@ -20,12 +20,16 @@ const OtpService = ({ otpStore, emailPublisher, log }) => {
     await otpStore.setCooldown(email, COOLDOWN_TTL)
     if (log) log.debug('otp generated', { email: maskEmail(email) })
 
-    await emailPublisher.publish({
+    const published = await emailPublisher.publish({
       id: crypto.randomUUID(),
       type: 'email.send',
       timestamp: new Date().toISOString(),
       payload: { to: email, template: 'otp-code', variables: { code } },
     })
+    if (!published) {
+      if (log) log.error('failed to publish otp email event', { email: maskEmail(email) })
+      throw new Error('Failed to send OTP, please try again')
+    }
     if (log) log.debug('otp email event published', { email: maskEmail(email) })
   }
 
