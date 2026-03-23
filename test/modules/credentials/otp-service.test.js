@@ -17,6 +17,8 @@ describe('OtpService', () => {
     const otp = await store.get('a@b.com')
     expect(otp.code).toMatch(/^\d{6}$/)
     expect(events.published[0].type).toBe('email.send')
+    expect(events.published[0].payload.subject).toBe('Your verification code')
+    expect(events.published[0].payload.fromName).toBe('Cardomancer')
   })
 
   it('verifies correct OTP', async () => {
