@@ -1,4 +1,4 @@
-const OAuthService = ({ userService, sessionService, userRepository, providers }) => {
+const OAuthService = ({ userService, sessionService, userRepository, providers, emailPublisher, log }) => {
   const getAuthUrl = (providerName, state) => {
     const provider = providers[providerName]
     if (!provider) throw new Error(`Unknown OAuth provider: ${providerName}`)
@@ -17,12 +17,41 @@ const OAuthService = ({ userService, sessionService, userRepository, providers }
       if (!user.emailVerifiedAt) {
         user = await userService.verifyEmail(user.email)
       }
-      return sessionService.createSession({ userId: user.id, email: user.email, displayName: user.displayName })
+      const session = await sessionService.createSession({
+        userId: user.id,
+        email: user.email,
+        displayName: user.displayName,
+      })
+
+      try {
+        await emailPublisher.publish({
+          id: crypto.randomUUID(),
+          type: 'email.send',
+          timestamp: new Date().toISOString(),
+          payload: {
+            to: user.email,
+            subject: 'New sign-in to your account',
+            fromName: 'Cardomancer',
+            template: 'login-success',
+            variables: {
+              name: user.displayName || 'there',
+              email: user.email,
+              loginTime: new Date().toISOString(),
+            },
+          },
+        })
+      } catch (_e) {
+        if (log) log.warn('failed to publish login-success email for oauth', { email: user.email })
+      }
+
+      return session
     }
 
+    let isNewUser = false
     let user = await userService.findByEmail(info.email)
     if (!user) {
       user = await userService.createUser({ email: info.email })
+      isNewUser = true
     }
 
     if (!user.emailVerifiedAt) {
@@ -35,7 +64,53 @@ const OAuthService = ({ userService, sessionService, userRepository, providers }
       providerId: info.providerId,
     })
 
-    return sessionService.createSession({ userId: user.id, email: user.email, displayName: user.displayName })
+    const session = await sessionService.createSession({
+      userId: user.id,
+      email: user.email,
+      displayName: user.displayName,
+    })
+
+    if (isNewUser) {
+      try {
+        await emailPublisher.publish({
+          id: crypto.randomUUID(),
+          type: 'email.send',
+          timestamp: new Date().toISOString(),
+          payload: {
+            to: user.email,
+            subject: 'Welcome to Cardomancer',
+            fromName: 'Cardomancer',
+            template: 'welcome',
+            variables: { name: user.displayName || 'there', email: user.email },
+          },
+        })
+      } catch (_e) {
+        if (log) log.warn('failed to publish welcome email for oauth', { email: user.email })
+      }
+    }
+
+    try {
+      await emailPublisher.publish({
+        id: crypto.randomUUID(),
+        type: 'email.send',
+        timestamp: new Date().toISOString(),
+        payload: {
+          to: user.email,
+          subject: 'New sign-in to your account',
+          fromName: 'Cardomancer',
+          template: 'login-success',
+          variables: {
+            name: user.displayName || 'there',
+            email: user.email,
+            loginTime: new Date().toISOString(),
+          },
+        },
+      })
+    } catch (_e) {
+      if (log) log.warn('failed to publish login-success email for oauth', { email: user.email })
+    }
+
+    return session
   }
 
   return { getAuthUrl, handleCallback }

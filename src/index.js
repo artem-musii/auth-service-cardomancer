@@ -98,7 +98,9 @@ const createApp = async ({ overrides = {}, config: configOverride } = {}) => {
         userService: c.resolve('userService'),
         sessionService: c.resolve('sessionService'),
         userRepository: c.resolve('userRepository'),
+        emailPublisher: c.resolve('emailPublisher'),
         providers,
+        log,
       })
     )
   })
