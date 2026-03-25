@@ -3,7 +3,7 @@ import { maskEmail, extractBearerToken } from '../../../shared/utils.js'
 
 const authRoutes = (
   app,
-  { userService, sessionService, passwordService, userRepository, rateLimiters, otpService, log },
+  { userService, sessionService, passwordService, userRepository, rateLimiters, otpService, emailPublisher, log },
 ) => {
   app.post(
     '/auth/register',
@@ -120,6 +120,24 @@ const authRoutes = (
         displayName: user.displayName,
       })
       if (!user.displayName) session.needsDisplayName = true
+
+      try {
+        await emailPublisher.publish({
+          id: crypto.randomUUID(),
+          type: 'email.send',
+          timestamp: new Date().toISOString(),
+          payload: {
+            to: user.email,
+            subject: 'Welcome to Cardomancer',
+            fromName: 'Cardomancer',
+            template: 'welcome',
+            variables: { name: user.displayName || 'there', email: user.email },
+          },
+        })
+      } catch (_e) {
+        log.warn('failed to publish welcome email', { email: maskEmail(user.email) })
+      }
+
       return session
     },
     { body: t.Object({ email: t.String({ format: 'email' }), code: t.String({ minLength: 6, maxLength: 6 }) }) },
@@ -188,6 +206,28 @@ const authRoutes = (
         displayName: user.displayName,
       })
       if (!user.displayName) session.needsDisplayName = true
+
+      try {
+        await emailPublisher.publish({
+          id: crypto.randomUUID(),
+          type: 'email.send',
+          timestamp: new Date().toISOString(),
+          payload: {
+            to: user.email,
+            subject: 'New sign-in to your account',
+            fromName: 'Cardomancer',
+            template: 'login-success',
+            variables: {
+              name: user.displayName || 'there',
+              email: user.email,
+              loginTime: new Date().toISOString(),
+            },
+          },
+        })
+      } catch (_e) {
+        log.warn('failed to publish login-success email', { email: maskEmail(user.email) })
+      }
+
       return session
     },
     { body: t.Object({ email: t.String({ format: 'email' }), password: t.String({ minLength: 8, maxLength: 128 }) }) },

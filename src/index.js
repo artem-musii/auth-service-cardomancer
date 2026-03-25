@@ -148,6 +148,7 @@ const createApp = async ({ overrides = {}, config: configOverride } = {}) => {
     otpService: container.resolve('otpService'),
     oauthService: container.resolve('oauthService'),
     userRepository: container.resolve('userRepository'),
+    emailPublisher: container.resolve('emailPublisher'),
     serviceKey: config.serviceKey,
     clientUrl: config.clientUrl,
     rateLimiters,
